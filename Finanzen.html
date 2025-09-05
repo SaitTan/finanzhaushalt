@@ -1792,60 +1792,63 @@
             document.getElementById('editFixkostenModal').style.display = 'none';
         }
 
-        // Fixkosten anzeigen aktualisieren
+        // ==================== KORRIGIERTE FIXKOSTEN-ANZEIGE ====================
 		function updateFixkostenDisplay() {
-			const fixkostenContainer = document.getElementById('fixkostenItems');
-			const now = new Date();
-			const currentMonth = now.getMonth();
-			const currentYear = now.getFullYear();
-    
-			if (fixkosten.length === 0) {
-				fixkostenContainer.innerHTML = '<div style="padding: 20px; text-align: center; color: #7f8c8d;">Noch keine Fixkosten vorhanden</div>';
-				document.getElementById('currentMonthFixkostenTotal').textContent = '0,00 €';
-				return;
-			}
-    
-			let currentMonthTotal = 0;
-    
-			fixkostenContainer.innerHTML = fixkosten.map(item => {
-				const nextDue = new Date(item.nextDue);
-				const isCurrentMonth = nextDue.getMonth() === currentMonth && nextDue.getFullYear() === currentYear;
-        
-				// Verwende den vollen Betrag statt den monatlichen Anteil
-				let displayAmount = item.amount;
-        
-				// Addiere zur Gesamtsumme, wenn es der aktuelle Monat ist
-				if (isCurrentMonth) {
-					currentMonthTotal += item.amount; // Hier auch den vollen Betrag verwenden
-				}
-        
-				const intervalText = {
-					'monthly': 'monatlich',
-					'bimonthly': 'alle zwei Monate',
-					'quarterly': 'alle drei Monate',
-					'half-yearly': 'halbjährlich',
-					'yearly': 'jährlich'
-				}[item.interval];
-        
-				const endDateText = item.endDate ? ` • Endet am: ${new Date(item.endDate).toLocaleDateString('de-DE')}` : '';
-        
-				return `
-					<div class="fixkosten-item ${isCurrentMonth ? 'current-month' : 'other-month'}">
-						<div class="fixkosten-header">
-							<span class="fixkosten-title">${item.title}</span>
-							<span class="fixkosten-amount" style="color: ${isCurrentMonth ? '#e74c3c' : '#f39c12'}">${displayAmount.toFixed(2)} €</span>
-						</div>
-						<div class="fixkosten-details">
-							${intervalText} • Nächste Fälligkeit: ${new Date(item.nextDue).toLocaleDateString('de-DE')}${endDateText}
-							${isCurrentMonth ? ' <span style="color:#e74c3c; font-weight:bold;">(Dieser Monat)</span>' : ''}
-						</div>
-						<div class="fixkosten-actions">
-							<button class="edit-btn" onclick="editFixkosten(${item.id})">✏️</button>
-							<button class="delete-btn" onclick="deleteFixkosten(${item.id})">🗑️</button>
-						<div>
-					</div>
-				`;
-			}).join('');
+		    const fixkostenContainer = document.getElementById('fixkostenItems');
+		    const now = new Date();
+		    const currentMonth = now.getMonth();
+		    const currentYear = now.getFullYear();
+		
+		    if (fixkosten.length === 0) {
+		        fixkostenContainer.innerHTML = '<div style="padding: 20px; text-align: center; color: #7f8c8d;">Noch keine Fixkosten vorhanden</div>';
+		        document.getElementById('currentMonthFixkostenTotal').textContent = '0,00 €';
+		        return;
+		    }
+		
+		    let currentMonthTotal = 0;
+		    let fixkostenHTML = '';
+		
+		    fixkosten.forEach(item => {
+		        const nextDue = new Date(item.nextDue);
+		        const isCurrentMonth = nextDue.getMonth() === currentMonth && nextDue.getFullYear() === currentYear;
+		
+		        // Addiere zur Gesamtsumme, wenn es der aktuelle Monat ist
+		        if (isCurrentMonth) {
+		            currentMonthTotal += item.amount;
+		        }
+		
+		        const intervalText = {
+		            'monthly': 'monatlich',
+		            'bimonthly': 'alle zwei Monate',
+		            'quarterly': 'alle drei Monate',
+		            'half-yearly': 'halbjährlich',
+		            'yearly': 'jährlich'
+		        }[item.interval] || item.interval;
+		
+		        const endDateText = item.endDate ? ` • Endet am: ${new Date(item.endDate).toLocaleDateString('de-DE')}` : '';
+		
+		        // KORRIGIERTE HTML-Struktur - geschlossene Tags und korrekte Formatierung
+		        fixkostenHTML += `
+		            <div class="fixkosten-item ${isCurrentMonth ? 'current-month' : 'other-month'}">
+		                <div class="fixkosten-header">
+		                    <span class="fixkosten-title">${item.title}</span>
+		                    <span class="fixkosten-amount" style="color: ${isCurrentMonth ? '#e74c3c' : '#f39c12'}">${item.amount.toFixed(2)} €</span>
+		                </div>
+		                <div class="fixkosten-details">
+		                    ${intervalText} • Nächste Fälligkeit: ${new Date(item.nextDue).toLocaleDateString('de-DE')}${endDateText}
+		                    ${isCurrentMonth ? ' <span style="color:#e74c3c; font-weight:bold;">(Dieser Monat)</span>' : ''}
+		                </div>
+		                <div class="fixkosten-actions">
+		                    <button class="edit-btn" onclick="editFixkosten(${item.id})">✏️</button>
+		                    <button class="delete-btn" onclick="deleteFixkosten(${item.id})">🗑️</button>
+		                </div>
+		            </div>
+		        `;
+		    });
+		
+		    fixkostenContainer.innerHTML = fixkostenHTML;
+		    document.getElementById('currentMonthFixkostenTotal').textContent = currentMonthTotal.toFixed(2) + ' €';
+		}
     
 			// Aktualisiere die Summen-Anzeige
 			document.getElementById('currentMonthFixkostenTotal').textContent = currentMonthTotal.toFixed(2) + ' €';
