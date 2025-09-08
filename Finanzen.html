@@ -1128,7 +1128,7 @@
         let ersparnis = 0;
         let lastResetDate = null;
         let fixkosten = [];
-        let currentFilter = 'all';
+         = 'all';
         let unsubscribeListener = null;
 
         // ==================== AUTHENTIFIZIERUNG ====================
@@ -1792,9 +1792,7 @@
 		        filterTransactions('all');
 		    }
 		}
-
-        let currentFilter = 'all'; // Globale Variable für aktuellen Filter
-
+        
 		function filterTransactions(type) {
 		    currentFilter = type;
 		    currentSearchTerm = ''; // Suche zurücksetzen
