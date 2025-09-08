@@ -972,12 +972,12 @@
 
         <!-- Transaktionsliste mit Filter-Buttons -->
         <div class="transactions">
-		    <div style="display: flex; justify-content: space-between; align-items: center; padding: 20px; background: #2c3e50;">
-		        <h3 style="margin: 0; color: white;">📋 Transaktionen 
-		            <span id="filterIndicator" style="font-size: 14px; font-weight: normal;"></span>
-		        </h3>
-		        
-		        <!-- SUCHFELD HIER RICHTIG POSITIONIERT -->
+		    <h3>📋 Transaktionen 
+		        <span id="filterIndicator" style="font-size: 14px; font-weight: normal;"></span>
+		    </h3>
+		    
+		    <!-- SUCHFELD HIER HINZUGEFÜGT -->
+		    <div style="padding: 0 20px 15px 20px;">
 		        <div style="display: flex; align-items: center; gap: 10px;">
 		            <div style="position: relative;">
 		                <input type="text" id="transactionSearch" placeholder="Suchen..." 
@@ -992,7 +992,8 @@
 		            </button>
 		        </div>
 		    </div>
-            <div class="filter-buttons">
+		    
+		    <div class="filter-buttons">
 		        <button class="filter-btn active" onclick="filterTransactions('all')">Alle</button>
 		        <button class="filter-btn" onclick="filterTransactions('income')">Einkommen</button>
 		        <button class="filter-btn" onclick="filterTransactions('expense')">Ausgaben</button>
