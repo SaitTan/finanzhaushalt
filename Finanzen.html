@@ -1811,14 +1811,7 @@
 		    updateTransactionList();
 		}
 		
-		// updateTransactionList Funktion anpassen
-		function updateTransactionList() {
-		    if (currentSearchTerm) {
-		        // Wenn Suche aktiv, Suchfunktion verwenden
-		        performSearch(currentSearchTerm);
-		        return;
-		    }
-            
+		            
             // Zum Transaktionsbereich scrollen
             setTimeout(() => {
                 const transactionSection = document.querySelector('.transactions');
@@ -2270,6 +2263,12 @@
             
             // Transaktionen filtern
             let filteredTransactions = transactions;
+
+			if (currentSearchTerm) {
+		        // Wenn Suche aktiv, Suchfunktion verwenden
+		        performSearch(currentSearchTerm);
+		        return;
+		    }
             
             if (currentFilter === 'income') {
                 filteredTransactions = transactions.filter(t => t.type === 'income');
