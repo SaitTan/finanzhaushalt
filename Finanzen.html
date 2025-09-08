@@ -1127,7 +1127,8 @@
         };
         let ersparnis = 0;
         let lastResetDate = null;
-        let fixkosten = [];         
+        let fixkosten = [];
+		let currentFilter = 'all';
         let unsubscribeListener = null;
 
         // ==================== AUTHENTIFIZIERUNG ====================
@@ -1654,9 +1655,7 @@
         }
 
 		// ==================== SUCHFUNKTIONEN ====================
-		let currentSearchTerm = '';
-		let currentFilter = 'all'; // Nur einmal deklarieren
-		
+		let currentSearchTerm = '';				
 		function handleSearch() {
 		    const searchTerm = document.getElementById('transactionSearch').value.toLowerCase().trim();
 		    currentSearchTerm = searchTerm;
