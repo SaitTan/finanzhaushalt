@@ -242,6 +242,13 @@
             overflow: hidden;
             margin-bottom: 20px;
         }
+
+		.transactions .header-row {
+		    display: flex;
+		    justify-content: space-between;
+		    align-items: center;
+		    padding: 20px;
+		    background: #2c3e50;
         
         .transactions h3 {
             padding: 20px;
@@ -655,7 +662,7 @@
 			
 			/* Responsive Design für Mobile */
 			@media (max-width: 768px) {
-			    .transactions > div:first-child {
+			    .transactions .header-row {
 			        flex-direction: column;
 			        align-items: flex-start;
 			        gap: 15px;
@@ -965,45 +972,46 @@
 
         <!-- Transaktionsliste mit Filter-Buttons -->
         <div class="transactions">
-            <h3>📋 Transaktionen 
-                <span id="filterIndicator" style="font-size: 14px; font-weight: normal;"></span>
-            </h3>
-			
-            <!-- SUCHFELD HIER EINFÜGEN -->
-	        <div style="display: flex; align-items: center; gap: 10px;">
-	            <div style="position: relative;">
-	                <input type="text" id="transactionSearch" placeholder="Suchen..." 
-	                       style="padding: 10px 35px 10px 15px; border: 2px solid #ddd; border-radius: 20px; width: 200px;"
-	                       onkeyup="handleSearch()">
-	                <span style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); color: #7f8c8d;">
-	                    🔍
-	                </span>
-	            </div>
-	            <button onclick="clearSearch()" style="background: #6c757d; color: white; border: none; padding: 8px 12px; border-radius: 5px; cursor: pointer;">
-	                ✖
-	            </button>
+		    <div style="display: flex; justify-content: space-between; align-items: center; padding: 20px; background: #2c3e50;">
+		        <h3 style="margin: 0; color: white;">📋 Transaktionen 
+		            <span id="filterIndicator" style="font-size: 14px; font-weight: normal;"></span>
+		        </h3>
+		        
+		        <!-- SUCHFELD HIER RICHTIG POSITIONIERT -->
+		        <div style="display: flex; align-items: center; gap: 10px;">
+		            <div style="position: relative;">
+		                <input type="text" id="transactionSearch" placeholder="Suchen..." 
+		                       style="padding: 10px 35px 10px 15px; border: 2px solid #ddd; border-radius: 20px; width: 200px;"
+		                       onkeyup="handleSearch()">
+		                <span style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); color: #7f8c8d;">
+		                    🔍
+		                </span>
+		            </div>
+		            <button onclick="clearSearch()" style="background: #6c757d; color: white; border: none; padding: 8px 12px; border-radius: 5px; cursor: pointer;">
+		                ✖
+		            </button>
 		        </div>
 		    </div>
             <div class="filter-buttons">
-                <button class="filter-btn active" onclick="filterTransactions('all')">Alle</button>
-                <button class="filter-btn" onclick="filterTransactions('income')">Einkommen</button>
-                <button class="filter-btn" onclick="filterTransactions('expense')">Ausgaben</button>
-                <button class="filter-btn" onclick="filterTransactions('fixkosten')">Fixkosten</button>
-                <button class="filter-btn" onclick="filterTransactionsByCategory('Mutfak')">Mutfak</button>
-                <button class="filter-btn" onclick="filterTransactionsByCategory('Extra Kosten')">Extra</button>
-                <button class="filter-btn" onclick="filterTransactionsByCategory('Benzin')">Benzin</button>
-            </div>
-            
-            <div id="transactionList">
-                <div style="padding: 20px; text-align: center; color: #7f8c8d;">
-                    Noch keine Transaktionen vorhanden
-                </div>
-            </div>
-			<div id="transactionSum" style="padding: 15px 20px; text-align: right; font-weight: bold; color: #2c3e50;">
-				Summe: 0,00 €
-			</div>
-
-        </div>
+		        <button class="filter-btn active" onclick="filterTransactions('all')">Alle</button>
+		        <button class="filter-btn" onclick="filterTransactions('income')">Einkommen</button>
+		        <button class="filter-btn" onclick="filterTransactions('expense')">Ausgaben</button>
+		        <button class="filter-btn" onclick="filterTransactions('fixkosten')">Fixkosten</button>
+		        <button class="filter-btn" onclick="filterTransactionsByCategory('Mutfak')">Mutfak</button>
+		        <button class="filter-btn" onclick="filterTransactionsByCategory('Extra Kosten')">Extra</button>
+		        <button class="filter-btn" onclick="filterTransactionsByCategory('Benzin')">Benzin</button>
+		    </div>
+		    
+		    <div id="transactionList">
+		        <div style="padding: 20px; text-align: center; color: #7f8c8d;">
+		            Noch keine Transaktionen vorhanden
+		        </div>
+		    </div>
+		    
+		    <div id="transactionSum" style="padding: 15px 20px; text-align: right; font-weight: bold; color: #2c3e50;">
+		        Summe: 0,00 €
+		    </div>
+		</div>
 
         <!-- Speichern Button -->
         <button class="btn btn-save" onclick="saveData()">💾 Daten speichern</button>
@@ -1802,19 +1810,17 @@
 		
 		function filterTransactionsByCategory(category) {
 		    currentFilter = category;
-		    currentSearchTerm = ''; // Suche zurücksetzen
+		    currentSearchTerm = '';
 		    document.getElementById('transactionSearch').value = '';
 		    updateFilterButtons();
 		    updateTransactionList();
-		}
-				
-		            
-            // Zum Transaktionsbereich scrollen
-            setTimeout(() => {
-                const transactionSection = document.querySelector('.transactions');
-                if (transactionSection) {
-                    transactionSection.scrollIntoView({ behavior: 'smooth' });
-                }
+		    
+		    // Zum Transaktionsbereich scrollen
+		    setTimeout(() => {
+		        const transactionSection = document.querySelector('.transactions');
+		        if (transactionSection) {
+		            transactionSection.scrollIntoView({ behavior: 'smooth' });
+		        }
             }, 100);
         }
 
