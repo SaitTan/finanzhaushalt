@@ -2263,10 +2263,10 @@
             
             // Transaktionen filtern
             let filteredTransactions = transactions;
-
+			
+			// Wenn Suche aktiv, Suchfunktion verwenden
 			if (currentSearchTerm) {
-		        // Wenn Suche aktiv, Suchfunktion verwenden
-		        performSearch(currentSearchTerm);
+				performSearch(currentSearchTerm);
 		        return;
 		    }
             
