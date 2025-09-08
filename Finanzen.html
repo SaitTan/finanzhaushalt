@@ -640,6 +640,54 @@
                 margin: 10px 0;
                 display: inline-block;
             }
+			/* ==================== SUCHE STYLES ==================== */
+			#transactionSearch {
+			    transition: all 0.3s ease;
+			    font-size: 14px;
+			}
+			
+			#transactionSearch:focus {
+			    outline: none;
+			    border-color: #3498db;
+			    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+			    width: 250px;
+			}
+			
+			/* Responsive Design für Mobile */
+			@media (max-width: 768px) {
+			    .transactions > div:first-child {
+			        flex-direction: column;
+			        align-items: flex-start;
+			        gap: 15px;
+			    }
+			    
+			    #transactionSearch {
+			        width: 100% !important;
+			        max-width: 300px;
+			    }
+			    
+			    .filter-buttons {
+			        overflow-x: auto;
+			        padding-bottom: 5px;
+			    }
+			    
+			    .filter-buttons::-webkit-scrollbar {
+			        height: 5px;
+			    }
+			    
+			    .filter-buttons::-webkit-scrollbar-thumb {
+			        background: #ccc;
+			        border-radius: 10px;
+			    }
+			}
+			
+			/* Hervorhebungs-Style */
+			.transaction-search-highlight {
+			    background: #ffeb3b;
+			    padding: 2px 4px;
+			    border-radius: 3px;
+			    font-weight: bold;
+			}
         }
     </style>
 </head>
@@ -920,7 +968,21 @@
             <h3>📋 Transaktionen 
                 <span id="filterIndicator" style="font-size: 14px; font-weight: normal;"></span>
             </h3>
-            
+            <!-- SUCHFELD HIER EINFÜGEN -->
+	        <div style="display: flex; align-items: center; gap: 10px;">
+	            <div style="position: relative;">
+	                <input type="text" id="transactionSearch" placeholder="Suchen..." 
+	                       style="padding: 10px 35px 10px 15px; border: 2px solid #ddd; border-radius: 20px; width: 200px;"
+	                       onkeyup="handleSearch()">
+	                <span style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); color: #7f8c8d;">
+	                    🔍
+	                </span>
+	            </div>
+	            <button onclick="clearSearch()" style="background: #6c757d; color: white; border: none; padding: 8px 12px; border-radius: 5px; cursor: pointer;">
+	                ✖
+	            </button>
+	        </div>
+	    </div>
             <div class="filter-buttons">
                 <button class="filter-btn active" onclick="filterTransactions('all')">Alle</button>
                 <button class="filter-btn" onclick="filterTransactions('income')">Einkommen</button>
@@ -1591,18 +1653,170 @@
             }
         }
 
-        // Transaktionen filtern
-        function filterTransactions(type) {
-            currentFilter = type;
-            updateFilterButtons();
-            updateTransactionList();
-        }
+		// ==================== SUCHFUNKTIONEN ====================
+		let currentSearchTerm = '';
+		
+		function handleSearch() {
+		    const searchTerm = document.getElementById('transactionSearch').value.toLowerCase().trim();
+		    currentSearchTerm = searchTerm;
+		    
+		    if (searchTerm === '') {
+		        // Wenn Suche leer, normalen Filter anwenden
+		        applyCurrentFilter();
+		    } else {
+		        // Suche durchführen
+		        performSearch(searchTerm);
+		    }
+		}
+		
+		function performSearch(searchTerm) {
+		    let filteredTransactions = transactions;
+		    
+		    // Zuerst aktuellen Filter anwenden
+		    if (currentFilter !== 'all' && currentFilter !== 'search') {
+		        if (currentFilter === 'income') {
+		            filteredTransactions = filteredTransactions.filter(t => t.type === 'income');
+		        } else if (currentFilter === 'expense') {
+		            filteredTransactions = filteredTransactions.filter(t => t.type === 'expense');
+		        } else if (currentFilter === 'fixkosten') {
+		            // Für Fixkosten-Filter zeigen wir keine Transaktionen an
+		            document.getElementById('transactionList').innerHTML = `
+		                <div style="padding: 20px; text-align: center; color: #7f8c8d;">
+		                    Fixkosten werden oben im Fixkosten-Tab verwaltet
+		                </div>
+		            `;
+		            return;
+		        } else if (['Mutfak', 'Extra Kosten', 'Benzin', 'Çekilen'].includes(currentFilter)) {
+		            filteredTransactions = filteredTransactions.filter(t => t.category === currentFilter);
+		        }
+		    }
+		    
+		    // Dann Suche anwenden
+		    const searchResults = filteredTransactions.filter(transaction => {
+		        // Suche in verschiedenen Feldern
+		        const searchableText = [
+		            transaction.category || '',
+		            transaction.description || '',
+		            transaction.amount ? transaction.amount.toString() : '',
+		            transaction.date || ''
+		        ].join(' ').toLowerCase();
+		        
+		        return searchableText.includes(searchTerm);
+		    });
+		    
+		    // Ergebnisse anzeigen
+		    displaySearchResults(searchResults, searchTerm);
+		}
+		
+		function displaySearchResults(results, searchTerm) {
+		    const listElement = document.getElementById('transactionList');
+		    const sumElement = document.getElementById('transactionSum');
+		    const indicator = document.getElementById('filterIndicator');
+		    
+		    if (results.length === 0) {
+		        listElement.innerHTML = `
+		            <div style="padding: 20px; text-align: center; color: #7f8c8d;">
+		                Keine Transaktionen gefunden für: "${searchTerm}"
+		            </div>
+		        `;
+		        sumElement.textContent = 'Summe: 0,00 €';
+		        indicator.textContent = `(Suchergebnis: "${searchTerm}")`;
+		        return;
+		    }
+		    
+		    // Transaktionen mit Hervorhebung anzeigen
+		    listElement.innerHTML = results.map(transaction => `
+		        <div class="transaction-item">
+		            <div class="transaction-info">
+		                <div class="transaction-category">
+		                    ${highlightText(transaction.category, searchTerm)}
+		                </div>
+		                ${transaction.description ? `
+		                    <div class="transaction-description">
+		                        ${highlightText(transaction.description, searchTerm)}
+		                    </div>
+		                ` : ''}
+		                <div class="transaction-date">
+		                    ${new Date(transaction.date).toLocaleDateString('de-DE')}
+		                </div>
+		            </div>
+		            <div class="transaction-amount ${transaction.type}">
+		                ${transaction.type === 'income' ? '+' : '-'}${transaction.amount.toFixed(2)} €
+		            </div>
+		            <div class="transaction-actions">
+		                <button class="edit-btn" onclick="editTransaction(${transaction.id})">✏️</button>
+		                <button class="delete-btn" onclick="deleteTransaction(${transaction.id})">🗑️</button>
+		            </div>
+		        </div>
+		    `).join('');
+		    
+		    // Summe berechnen
+		    const sum = results.reduce((total, t) => {
+		        return t.type === 'income' ? total + t.amount : total - t.amount;
+		    }, 0);
+		    
+		    sumElement.textContent = 'Summe: ' + sum.toFixed(2).replace('.', ',') + ' €';
+		    indicator.textContent = `(Suchergebnis: "${searchTerm}" - ${results.length} Treffer)`;
+		}
+		
+		function highlightText(text, searchTerm) {
+		    if (!searchTerm) return text;
+		    
+		    const regex = new RegExp(`(${searchTerm})`, 'gi');
+		    return text.replace(regex, '<span style="background: #ffeb3b; padding: 2px 4px; border-radius: 3px;">$1</span>');
+		}
+		
+		function clearSearch() {
+		    document.getElementById('transactionSearch').value = '';
+		    currentSearchTerm = '';
+		    applyCurrentFilter();
+		}
+		
+		function applyCurrentFilter() {
+		    // Setze Filter-Indicator zurück
+		    const indicator = document.getElementById('filterIndicator');
+		    
+		    if (currentFilter === 'all') {
+		        indicator.textContent = '';
+		    } else {
+		        indicator.textContent = `(Gefiltert nach: ${currentFilter})`;
+		    }
+		    
+		    // Normale Filter-Funktion aufrufen
+		    if (['income', 'expense', 'fixkosten'].includes(currentFilter)) {
+		        filterTransactions(currentFilter);
+		    } else if (['Mutfak', 'Extra Kosten', 'Benzin', 'Çekilen'].includes(currentFilter)) {
+		        filterTransactionsByCategory(currentFilter);
+		    } else {
+		        filterTransactions('all');
+		    }
+		}
 
-        // Transaktionen nach Kategorie filtern
-        function filterTransactionsByCategory(category) {
-            currentFilter = category;
-            updateFilterButtons();
-            updateTransactionList();
+        let currentFilter = 'all'; // Globale Variable für aktuellen Filter
+
+		function filterTransactions(type) {
+		    currentFilter = type;
+		    currentSearchTerm = ''; // Suche zurücksetzen
+		    document.getElementById('transactionSearch').value = '';
+		    updateFilterButtons();
+		    updateTransactionList();
+		}
+		
+		function filterTransactionsByCategory(category) {
+		    currentFilter = category;
+		    currentSearchTerm = ''; // Suche zurücksetzen
+		    document.getElementById('transactionSearch').value = '';
+		    updateFilterButtons();
+		    updateTransactionList();
+		}
+		
+		// updateTransactionList Funktion anpassen
+		function updateTransactionList() {
+		    if (currentSearchTerm) {
+		        // Wenn Suche aktiv, Suchfunktion verwenden
+		        performSearch(currentSearchTerm);
+		        return;
+		    }
             
             // Zum Transaktionsbereich scrollen
             setTimeout(() => {
