@@ -640,14 +640,7 @@
                 justify-content: center;
             }
             
-            .family-name {
-                position: relative;
-                top: 0;
-                left: 0;
-                transform: none;
-                margin: 10px 0;
-                display: inline-block;
-            }
+            
         }
     </style>
 </head>
@@ -1176,7 +1169,7 @@
             // Familie in Firestore erstellen
             const familyRef = db.collection('families').doc();
             await familyRef.set({
-                
+                name: `${userName}'s Familie`,
                 created: new Date(),
                 owner: userId,
                 members: {
