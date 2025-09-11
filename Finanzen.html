@@ -1176,7 +1176,7 @@
             // Familie in Firestore erstellen
             const familyRef = db.collection('families').doc();
             await familyRef.set({
-                name: `${userName}'s Familie`,
+                
                 created: new Date(),
                 owner: userId,
                 members: {
