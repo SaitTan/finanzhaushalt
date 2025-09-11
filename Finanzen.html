@@ -103,6 +103,10 @@
             border-left: 5px solid #9b59b6;
         }
         
+        .card.hedef {
+            border-left: 5px solid #16a085;
+        }
+        
         .card h3 {
             margin-bottom: 10px;
             font-size: 14px;
@@ -137,6 +141,10 @@
         
         .ersparnis .amount {
             color: #9b59b6;
+        }
+        
+        .hedef .amount {
+            color: #16a085;
         }
         
         .tabs {
@@ -714,6 +722,11 @@
                 <h3>Kalan</h3>
                 <div class="amount" id="bankBalance">0,00 €</div>
             </div>
+			<!-- Neue Hedef-Karte -->
+            <div class="card hedef">
+                <h3>Hedef</h3>
+                <div class="amount" id="hedefAmount">0,00 €</div>
+            </div>
             <div class="card ersparnis" onclick="showErsparnisSection()">
                 <h3>Ersparnis</h3>
                 <div class="amount" id="ersparnisAmount">0,00 €</div>
@@ -1067,6 +1080,24 @@
         let fixkosten = [];
         let currentFilter = 'all';
         let unsubscribeListener = null;
+		
+		/ ==================== HEDEF-BERECHNUNG ====================
+        // Funktion zur Berechnung des Hedef-Werts
+        function calculateHedef() {
+            const totalIncome = transactions
+                .filter(t => t.type === 'income')
+                .reduce((sum, t) => sum + t.amount, 0);
+                
+            const monthlyFixkosten = calculateMonthlyFixkosten();
+            
+            // Budgets für Mutfak, Extra Kosten und Benzin
+            const totalBudgets = budgets.mutfak + budgets.extra + budgets.benzin;
+            
+            // Hedef = Einkommen - (Fixkosten + Budgets)
+            const hedef = totalIncome - (monthlyFixkosten + totalBudgets);
+            
+            return hedef;
+        }
 
         // ==================== AUTHENTIFIZIERUNG ====================
         // Auth State Observer
@@ -2003,35 +2034,37 @@
             updateMonthDisplay();
         }
 
-        // Zusammenfassung aktualisieren
+        // ==================== UPDATE DISPLAY ====================
+        // Zusammenfassung aktualisieren - Hedef hinzufügen
         function updateSummary() {
             const totalIncome = transactions
                 .filter(t => t.type === 'income')
                 .reduce((sum, t) => sum + t.amount, 0);
                 
             const totalExpenseWithoutFixkosten = transactions
-				.filter(t => t.type === 'expense')
-				.reduce((sum, t) => sum + t.amount, 0);
+                .filter(t => t.type === 'expense')
+                .reduce((sum, t) => sum + t.amount, 0);
 
-			// Berechne monatliche Fixkosten
-			const monthlyFixkosten = calculateMonthlyFixkosten();
+            // Berechne monatliche Fixkosten
+            const monthlyFixkosten = calculateMonthlyFixkosten();
 
-			// Gesamt-Ausgaben = normale Ausgaben + monatliche Fixkosten
-			const totalExpense = totalExpenseWithoutFixkosten + monthlyFixkosten;
+            // Gesamt-Ausgaben = normale Ausgaben + monatliche Fixkosten
+            const totalExpense = totalExpenseWithoutFixkosten + monthlyFixkosten;
 
-			const bankBalance = totalIncome - totalExpense;
-
+            const bankBalance = totalIncome - totalExpense;
                 
             const cekilenAmount = transactions
                 .filter(t => t.category === 'Çekilen' && t.type === 'expense')
                 .reduce((sum, t) => sum + t.amount, 0);
                 
-            
+            // Hedef berechnen
+            const hedefAmount = calculateHedef();
             
             document.getElementById('totalIncome').textContent = totalIncome.toFixed(2) + ' €';
             document.getElementById('totalExpense').textContent = totalExpense.toFixed(2) + ' €';
             document.getElementById('totalFixkosten').textContent = monthlyFixkosten.toFixed(2) + ' €';
             document.getElementById('bankBalance').textContent = bankBalance.toFixed(2) + ' €';
+            document.getElementById('hedefAmount').textContent = hedefAmount.toFixed(2) + ' €';
             document.getElementById('cekilenAmount').textContent = cekilenAmount.toFixed(2) + ' €';
             
             // Bankada Kalan Farbe basierend auf dem Wert anpassen
