@@ -1491,7 +1491,7 @@
             document.getElementById('monthDisplay').textContent = monthNames[displayMonth];
         }
 
-        // Monatliche Zurücksetzung prüfen (KORRIGIERTE VERSION)
+        // Monatliche Zurücksetzung prüfen (OHNE ALERT)
 		function checkMonthlyReset() {
 			const now = new Date();
 			const today = now.getDate();
@@ -1509,7 +1509,7 @@
 			}
 		}
 
-        // Monatliche Daten zurücksetzen (KORRIGIERTE VERSION)
+        // Monatliche Daten zurücksetzen (OHNE ALERT)
 		function resetMonthlyData() {
 			// 1. Çekilen zur Ersparnis hinzufügen
 			const cekilenAmount = transactions
@@ -1524,16 +1524,12 @@
 			// 2. ALLE Ausgaben löschen (nicht nur bestimmte Kategorien)
 			transactions = transactions.filter(t => t.type === 'income'); // Behalte nur Einkommen
 			
-			// 3. Budgets NICHT zurücksetzen (sollten manuell gesetzt bleiben)
-			// budgets.mutfak = 0;
-			// budgets.extra = 0;
-			// budgets.benzin = 0;
-			
-			// 4. Fixkosten-Status für neuen Monat aktualisieren
+			// 3. Fixkosten-Status für neuen Monat aktualisieren
 			updateFixkostenForNewMonth();
 			
-			alert('Monatliche Zurücksetzung durchgeführt. ' + 
-				  (cekilenAmount > 0 ? cekilenAmount.toFixed(2) + ' € Çekilen wurde zur Ersparnis hinzugefügt.' : 'Keine Çekilen-Ausgaben vorhanden.'));
+			// KEINE ALERT-MELDUNG MEHR - nur stillschweigend ausführen
+			console.log('Monatliche Zurücksetzung durchgeführt.');
+			
 			updateDisplay();
 		}
 
