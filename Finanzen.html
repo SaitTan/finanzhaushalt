@@ -1511,38 +1511,62 @@
 
         // Monatliche Daten zurücksetzen
         function resetMonthlyData() {
-			console.log('Führe monatliche Zurücksetzung durch...');
-			
-			// Çekilen zur Ersparnis hinzufügen
-			const cekilenAmount = transactions
-				.filter(t => t.category === 'Çekilen' && t.type === 'expense')
-				.reduce((sum, t) => sum + t.amount, 0);
-			
-			if (cekilenAmount > 0) {
-				ersparnis += cekilenAmount;
-			}
-			
-			// ALLE Ausgaben löschen (Mutfak, Extra Kosten, Benzin, Çekilen)
-			transactions = transactions.filter(t => t.type !== 'expense');
-			
-			// Budgets zurücksetzen
-			budgets.mutfak = 0;
-			budgets.extra = 0;
-			budgets.benzin = 0;
-			
-			// Benachrichtigung anzeigen
-			if (cekilenAmount > 0) {
-				alert(`Monatliche Zurücksetzung durchgeführt:
-				• ${cekilenAmount.toFixed(2)} € Çekilen zur Ersparnis hinzugefügt
-				• Alle Ausgaben zurückgesetzt
-				• Budgets zurückgesetzt
-				• Kalan und Hedef werden neu berechnet`);
-			} else {
-				alert('Monatliche Zurücksetzung durchgeführt: Alle Ausgaben und Budgets zurückgesetzt');
-			}
-			
-			updateDisplay();
+            // Çekilen zur Ersparnis hinzufügen
+            const cekilenAmount = transactions
+                .filter(t => t.category === 'Çekilen' && t.type === 'expense')
+                .reduce((sum, t) => sum + t.amount, 0);
+            
+            // Nur hinzufügen, wenn es Çekilen-Ausgaben gibt
+            if (cekilenAmount > 0) {
+                ersparnis += cekilenAmount;
+                
+                // Ausgaben für Mutfak, Extra Kosten und Çekilen löschen
+                transactions = transactions.filter(t => 
+                    !(t.type === 'expense' && (t.category === 'Mutfak' || t.category === 'Extra Kosten' || t.category === 'Çekilen'))
+                );
+                
+                // Budgets zurücksetzen
+                budgets.mutfak = 0;
+                budgets.extra = 0;
+                budgets.benzin = 0;
+                
+                alert('Monatliche Zurücksetzung durchgeführt. ' + cekilenAmount.toFixed(2) + ' € Çekilen wurde zur Ersparnis hinzugefügt.');
+                updateDisplay();
+				updateFixkostenFälligkeit(); // <- Diese neue Funktion aufrufen
+				saveData();
+            }
+        }
+		
+		function updateFixkostenFälligkeit() {
+			const now = new Date();
+			fixkosten.forEach(item => {
+				let nextDue = new Date(item.nextDue);
+				if (nextDue.getMonth() === now.getMonth() && nextDue.getFullYear() === now.getFullYear()) {
+					// Fällig in diesem Monat und abgerechnet – jetzt nächsten Termin setzen
+					switch (item.interval) {
+						case 'monthly':
+							nextDue.setMonth(nextDue.getMonth() + 1);
+							break;
+						case 'bimonthly':
+							nextDue.setMonth(nextDue.getMonth() + 2);
+							break;
+						case 'quarterly':
+							nextDue.setMonth(nextDue.getMonth() + 3);
+							break;
+						case 'half-yearly':
+							nextDue.setMonth(nextDue.getMonth() + 6);
+							break;
+						case 'yearly':
+							nextDue.setFullYear(nextDue.getFullYear() + 1);
+							break;
+					}
+					item.nextDue = nextDue.toISOString().split('T')[0];
+				}
+			});
+			// Nach Aktualisierung speichern
+			saveData();
 		}
+
 
         // Beschreibungsfeld ein-/ausblenden
         function toggleExpenseFields() {
@@ -1851,25 +1875,8 @@
 		
 		    fixkosten.forEach(item => {
 		        const nextDue = new Date(item.nextDue);
-		        // ALTE Zeile ersetzen:
-				
-				// NEUE Zeilen:
-				// Erst sicherstellen, dass nextDue aktuell ist
-				let nextDueDate = new Date(item.nextDue);
-				while (nextDueDate < now && (!item.endDate || new Date(item.endDate) > now)) {
-					switch(item.interval) {
-						case 'monthly': nextDueDate.setMonth(nextDueDate.getMonth() + 1); break;
-						case 'bimonthly': nextDueDate.setMonth(nextDueDate.getMonth() + 2); break;
-						case 'quarterly': nextDueDate.setMonth(nextDueDate.getMonth() + 3); break;
-						case 'half-yearly': nextDueDate.setMonth(nextDueDate.getMonth() + 6); break;
-						case 'yearly': nextDueDate.setFullYear(nextDueDate.getFullYear() + 1); break;
-					}
-				}
-				item.nextDue = nextDueDate.toISOString().split('T')[0]; // Aktualisiere das Datum
-
-				const isCurrentMonth = nextDueDate.getMonth() === currentMonth && nextDueDate.getFullYear() === currentYear;
-				
-						
+		        const isCurrentMonth = nextDue.getMonth() === currentMonth && nextDue.getFullYear() === currentYear;
+		
 		        // Addiere zur Gesamtsumme, wenn es der aktuelle Monat ist
 		        if (isCurrentMonth) {
 		            currentMonthTotal += item.amount;
@@ -1918,40 +1925,16 @@
 			let monthlyFixkosten = 0;
 			
 			fixkosten.forEach(item => {
-				// Prüfe ob Fixkosten noch aktiv
+				// Prüfe ob Fixkosten noch aktiv (kein Enddatum oder Enddatum in der Zukunft)
 				const endDate = item.endDate ? new Date(item.endDate) : null;
 				if (endDate && endDate < now) {
 					return; // Überspringe abgelaufene Fixkosten
 				}
 				
-				let nextDue = new Date(item.nextDue);
-				
-				// Automatisch nächste Fälligkeit berechnen wenn überfällig
-				while (nextDue < now) {
-					switch(item.interval) {
-						case 'monthly':
-							nextDue.setMonth(nextDue.getMonth() + 1);
-							break;
-						case 'bimonthly':
-							nextDue.setMonth(nextDue.getMonth() + 2);
-							break;
-						case 'quarterly':
-							nextDue.setMonth(nextDue.getMonth() + 3);
-							break;
-						case 'half-yearly':
-							nextDue.setMonth(nextDue.getMonth() + 6);
-							break;
-						case 'yearly':
-							nextDue.setFullYear(nextDue.getFullYear() + 1);
-							break;
-					}
-				}
-				
-				// Aktualisiere das nextDue Datum im Objekt
-				item.nextDue = nextDue.toISOString().split('T')[0];
-				
 				// Prüfe ob die nächste Fälligkeit in diesem Monat liegt
+				const nextDue = new Date(item.nextDue);
 				if (nextDue.getMonth() === currentMonth && nextDue.getFullYear() === currentYear) {
+					// Verwende den vollen Betrag statt den monatlichen Anteil
 					monthlyFixkosten += item.amount;
 				}
 			});
@@ -2077,8 +2060,7 @@
 
         // Anzeige aktualisieren
         function updateDisplay() {
-            calculateMonthlyFixkosten();
-			updateSummary();
+            updateSummary();
             updateTransactionList();
             updateBudgetDisplay();
             updateErsparnisDisplay();
