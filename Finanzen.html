@@ -1491,49 +1491,100 @@
             document.getElementById('monthDisplay').textContent = monthNames[displayMonth];
         }
 
-        // Monatliche Zurücksetzung prüfen
-        function checkMonthlyReset() {
-            const now = new Date();
-            const today = now.getDate();
-            
-            // Prüfen, ob heute der 26. oder später ist und wir noch nicht zurückgesetzt haben
-            if (today >= 26) {
-                const resetDate = new Date(now.getFullYear(), now.getMonth(), 26);
-                
-                // Wenn wir noch nicht in diesem Monat zurückgesetzt haben
-                if (!lastResetDate || lastResetDate < resetDate) {
-                    resetMonthlyData();
-                    lastResetDate = now;
-                    saveData();
-                }
-            }
-        }
+        // Monatliche Zurücksetzung prüfen (KORRIGIERTE VERSION)
+		function checkMonthlyReset() {
+			const now = new Date();
+			const today = now.getDate();
+			
+			// Prüfen, ob heute der 26. oder später ist und wir noch nicht zurückgesetzt haben
+			if (today >= 26) {
+				const resetDate = new Date(now.getFullYear(), now.getMonth(), 26);
+				
+				// Wenn wir noch nicht in diesem Monat zurückgesetzt haben
+				if (!lastResetDate || lastResetDate < resetDate) {
+					resetMonthlyData();
+					lastResetDate = now;
+					saveData();
+				}
+			}
+		}
 
-        // Monatliche Daten zurücksetzen
-        function resetMonthlyData() {
-            // Çekilen zur Ersparnis hinzufügen
-            const cekilenAmount = transactions
-                .filter(t => t.category === 'Çekilen' && t.type === 'expense')
-                .reduce((sum, t) => sum + t.amount, 0);
-            
-            // Nur hinzufügen, wenn es Çekilen-Ausgaben gibt
-            if (cekilenAmount > 0) {
-                ersparnis += cekilenAmount;
-                
-                // Ausgaben für Mutfak, Extra Kosten und Çekilen löschen
-                transactions = transactions.filter(t => 
-                    !(t.type === 'expense' && (t.category === 'Mutfak' || t.category === 'Extra Kosten' || t.category === 'Çekilen'))
-                );
-                
-                // Budgets zurücksetzen
-                budgets.mutfak = 0;
-                budgets.extra = 0;
-                budgets.benzin = 0;
-                
-                alert('Monatliche Zurücksetzung durchgeführt. ' + cekilenAmount.toFixed(2) + ' € Çekilen wurde zur Ersparnis hinzugefügt.');
-                updateDisplay();
-            }
-        }
+        // Monatliche Daten zurücksetzen (KORRIGIERTE VERSION)
+		function resetMonthlyData() {
+			// 1. Çekilen zur Ersparnis hinzufügen
+			const cekilenAmount = transactions
+				.filter(t => t.category === 'Çekilen' && t.type === 'expense')
+				.reduce((sum, t) => sum + t.amount, 0);
+			
+			// Nur hinzufügen, wenn es Çekilen-Ausgaben gibt
+			if (cekilenAmount > 0) {
+				ersparnis += cekilenAmount;
+			}
+			
+			// 2. ALLE Ausgaben löschen (nicht nur bestimmte Kategorien)
+			transactions = transactions.filter(t => t.type === 'income'); // Behalte nur Einkommen
+			
+			// 3. Budgets NICHT zurücksetzen (sollten manuell gesetzt bleiben)
+			// budgets.mutfak = 0;
+			// budgets.extra = 0;
+			// budgets.benzin = 0;
+			
+			// 4. Fixkosten-Status für neuen Monat aktualisieren
+			updateFixkostenForNewMonth();
+			
+			alert('Monatliche Zurücksetzung durchgeführt. ' + 
+				  (cekilenAmount > 0 ? cekilenAmount.toFixed(2) + ' € Çekilen wurde zur Ersparnis hinzugefügt.' : 'Keine Çekilen-Ausgaben vorhanden.'));
+			updateDisplay();
+		}
+
+		// Fixkosten für neuen Monat aktualisieren
+		function updateFixkostenForNewMonth() {
+			const now = new Date();
+			const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+			
+			fixkosten.forEach(item => {
+				const nextDue = new Date(item.nextDue);
+				
+				// Wenn die nächste Fälligkeit in der Vergangenheit liegt, 
+				// berechne die nächste Fälligkeit basierend auf dem Intervall
+				if (nextDue < now) {
+					let newDueDate = new Date(nextDue);
+					
+					switch (item.interval) {
+						case 'monthly':
+							newDueDate.setMonth(newDueDate.getMonth() + 1);
+							break;
+						case 'bimonthly':
+							newDueDate.setMonth(newDueDate.getMonth() + 2);
+							break;
+						case 'quarterly':
+							newDueDate.setMonth(newDueDate.getMonth() + 3);
+							break;
+						case 'half-yearly':
+							newDueDate.setMonth(newDueDate.getMonth() + 6);
+							break;
+						case 'yearly':
+							newDueDate.setFullYear(newDueDate.getFullYear() + 1);
+							break;
+					}
+					
+					// Prüfe ob Fixkosten ein Enddatum hat und ob es überschritten wurde
+					if (item.endDate) {
+						const endDate = new Date(item.endDate);
+						if (newDueDate > endDate) {
+							// Fixkosten entfernen, da Enddatum überschritten
+							fixkosten = fixkosten.filter(f => f.id !== item.id);
+							return;
+						}
+					}
+					
+					// Aktualisiere die nächste Fälligkeit
+					item.nextDue = newDueDate.toISOString().split('T')[0];
+				}
+			});
+			
+			saveData();
+		}
 
         // Beschreibungsfeld ein-/ausblenden
         function toggleExpenseFields() {
@@ -2025,57 +2076,58 @@
             }
         }
 
-        // Anzeige aktualisieren
-        function updateDisplay() {
-            updateSummary();
-            updateTransactionList();
-            updateBudgetDisplay();
-            updateErsparnisDisplay();
-            updateFixkostenDisplay();
-            updateMonthDisplay();
-        }
+        // Anzeige aktualisieren (ERWEITERTE VERSION)
+		function updateDisplay() {
+			checkMonthlyReset(); // Prüfe monatliche Zurücksetzung bei jeder Aktualisierung
+			updateSummary();
+			updateTransactionList();
+			updateBudgetDisplay();
+			updateErsparnisDisplay();
+			updateFixkostenDisplay();
+			updateMonthDisplay();
+		}
 
         // ==================== UPDATE DISPLAY ====================
-        // Zusammenfassung aktualisieren - Hedef hinzufügen
-        function updateSummary() {
-            const totalIncome = transactions
-                .filter(t => t.type === 'income')
-                .reduce((sum, t) => sum + t.amount, 0);
-                
-            const totalExpenseWithoutFixkosten = transactions
-                .filter(t => t.type === 'expense')
-                .reduce((sum, t) => sum + t.amount, 0);
+        // Zusammenfassung aktualisieren - KORRIGIERTE Hedef-Berechnung
+		function updateSummary() {
+			const totalIncome = transactions
+				.filter(t => t.type === 'income')
+				.reduce((sum, t) => sum + t.amount, 0);
+				
+			const totalExpenseWithoutFixkosten = transactions
+				.filter(t => t.type === 'expense')
+				.reduce((sum, t) => sum + t.amount, 0);
 
-            // Berechne monatliche Fixkosten
-            const monthlyFixkosten = calculateMonthlyFixkosten();
+			// Berechne monatliche Fixkosten
+			const monthlyFixkosten = calculateMonthlyFixkosten();
 
-            // Gesamt-Ausgaben = normale Ausgaben + monatliche Fixkosten
-            const totalExpense = totalExpenseWithoutFixkosten + monthlyFixkosten;
+			// Gesamt-Ausgaben = normale Ausgaben + monatliche Fixkosten
+			const totalExpense = totalExpenseWithoutFixkosten + monthlyFixkosten;
 
-            const bankBalance = totalIncome - totalExpense;
-                
-            const cekilenAmount = transactions
-                .filter(t => t.category === 'Çekilen' && t.type === 'expense')
-                .reduce((sum, t) => sum + t.amount, 0);
-                
-            // Hedef berechnen
-            const hedefAmount = calculateHedef();
-            
-            document.getElementById('totalIncome').textContent = totalIncome.toFixed(2) + ' €';
-            document.getElementById('totalExpense').textContent = totalExpense.toFixed(2) + ' €';
-            document.getElementById('totalFixkosten').textContent = monthlyFixkosten.toFixed(2) + ' €';
-            document.getElementById('bankBalance').textContent = bankBalance.toFixed(2) + ' €';
-            document.getElementById('hedefAmount').textContent = hedefAmount.toFixed(2) + ' €';
-            document.getElementById('cekilenAmount').textContent = cekilenAmount.toFixed(2) + ' €';
-            
-            // Bankada Kalan Farbe basierend auf dem Wert anpassen
-            const bankBalanceCard = document.getElementById('bankBalanceCard');
-            if (bankBalance < 0) {
-                bankBalanceCard.classList.add('negative');
-            } else {
-                bankBalanceCard.classList.remove('negative');
-            }
-        }
+			const bankBalance = totalIncome - totalExpense;
+				
+			const cekilenAmount = transactions
+				.filter(t => t.category === 'Çekilen' && t.type === 'expense')
+				.reduce((sum, t) => sum + t.amount, 0);
+				
+			// Hedef berechnen (Einkommen - Fixkosten - Budgets)
+			const hedefAmount = calculateHedef();
+			
+			document.getElementById('totalIncome').textContent = totalIncome.toFixed(2) + ' €';
+			document.getElementById('totalExpense').textContent = totalExpense.toFixed(2) + ' €';
+			document.getElementById('totalFixkosten').textContent = monthlyFixkosten.toFixed(2) + ' €';
+			document.getElementById('bankBalance').textContent = bankBalance.toFixed(2) + ' €';
+			document.getElementById('hedefAmount').textContent = hedefAmount.toFixed(2) + ' €';
+			document.getElementById('cekilenAmount').textContent = cekilenAmount.toFixed(2) + ' €';
+			
+			// Bankada Kalan Farbe basierend auf dem Wert anpassen
+			const bankBalanceCard = document.getElementById('bankBalanceCard');
+			if (bankBalance < 0) {
+				bankBalanceCard.classList.add('negative');
+			} else {
+				bankBalanceCard.classList.remove('negative');
+			}
+		}
 
         // Ersparnis-Anzeige aktualisieren
         function updateErsparnisDisplay() {
