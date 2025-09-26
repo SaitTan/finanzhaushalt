@@ -1851,7 +1851,7 @@
 		
 		    fixkosten.forEach(item => {
 		        const nextDue = new Date(item.nextDue);
-		        const isCurrentMonth = nextDue.getMonth() === currentMonth && nextDue.getFullYear() === currentYear;
+		        // ALTE Zeile ersetzen:
 				
 				// NEUE Zeilen:
 				// Erst sicherstellen, dass nextDue aktuell ist
@@ -1868,7 +1868,8 @@
 				item.nextDue = nextDueDate.toISOString().split('T')[0]; // Aktualisiere das Datum
 
 				const isCurrentMonth = nextDueDate.getMonth() === currentMonth && nextDueDate.getFullYear() === currentYear;
-		
+				
+						
 		        // Addiere zur Gesamtsumme, wenn es der aktuelle Monat ist
 		        if (isCurrentMonth) {
 		            currentMonthTotal += item.amount;
