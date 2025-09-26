@@ -1532,41 +1532,8 @@
                 
                 alert('Monatliche Zurücksetzung durchgeführt. ' + cekilenAmount.toFixed(2) + ' € Çekilen wurde zur Ersparnis hinzugefügt.');
                 updateDisplay();
-				updateFixkostenFälligkeit(); // <- Diese neue Funktion aufrufen
-				saveData();
             }
         }
-		
-		function updateFixkostenFälligkeit() {
-			const now = new Date();
-			fixkosten.forEach(item => {
-				let nextDue = new Date(item.nextDue);
-				if (nextDue.getMonth() === now.getMonth() && nextDue.getFullYear() === now.getFullYear()) {
-					// Fällig in diesem Monat und abgerechnet – jetzt nächsten Termin setzen
-					switch (item.interval) {
-						case 'monthly':
-							nextDue.setMonth(nextDue.getMonth() + 1);
-							break;
-						case 'bimonthly':
-							nextDue.setMonth(nextDue.getMonth() + 2);
-							break;
-						case 'quarterly':
-							nextDue.setMonth(nextDue.getMonth() + 3);
-							break;
-						case 'half-yearly':
-							nextDue.setMonth(nextDue.getMonth() + 6);
-							break;
-						case 'yearly':
-							nextDue.setFullYear(nextDue.getFullYear() + 1);
-							break;
-					}
-					item.nextDue = nextDue.toISOString().split('T')[0];
-				}
-			});
-			// Nach Aktualisierung speichern
-			saveData();
-		}
-
 
         // Beschreibungsfeld ein-/ausblenden
         function toggleExpenseFields() {
