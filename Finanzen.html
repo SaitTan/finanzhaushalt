@@ -1424,7 +1424,7 @@
             const today = new Date();
             const nextMonth = new Date(today.getFullYear(), today.getMonth() + 1, 1);
             document.getElementById('fixkostenNextDue').value = nextMonth.toISOString().split('T')[0];
-            updateDisplay(); // ruft checkMonthlyReset() jetzt automatisch beim Start auf
+            
             // Testweise localStorage-Daten laden, falls vorhanden (für Übergangsphase)
             try {
                 const localData = localStorage.getItem('financeData');
@@ -1455,14 +1455,7 @@
 				}
 			}, 100);
 		}
-		// Daten wiederherstellen (in Browser-Konsole ausführen)
-		function restoreData() {
-		    // Setze lastResetDate zurück, damit die Daten wieder erscheinen
-		    lastResetDate = null;
-		    
-		    // Lade die Seite neu
-		    location.reload();
-		}
+		
 		// Çekilen-Bereich anzeigen
 		function showCekilenSection() {
 			// Speziellen Filter für Çekilen setzen
@@ -1498,202 +1491,49 @@
             document.getElementById('monthDisplay').textContent = monthNames[displayMonth];
         }
 
-        // Monatliche Daten zurücksetzen - KORRIGIERT (nur Ausgaben löschen)
-		function resetMonthlyData() {
-		    console.log("=== START MONATLICHE ZURÜCKSETZUNG ===");
-		    
-		    // Çekilen zur Ersparnis hinzufügen (NUR für den vorherigen Monat)
-		    const now = new Date();
-		    const currentMonth = now.getMonth();
-		    const currentYear = now.getFullYear();
-		    
-		    // Bestimme den vorherigen Monat (da wir ab 26. den neuen Monat starten)
-		    let previousMonth = currentMonth - 1;
-		    let previousYear = currentYear;
-		    if (previousMonth < 0) {
-		        previousMonth = 11;
-		        previousYear = currentYear - 1;
-		    }
-		    
-		    console.log("Aktueller Monat:", currentMonth, "Vorheriger Monat:", previousMonth);
-		    
-		    // Çekilen-Ausgaben nur aus dem VORMONAT sammeln
-		    const cekilenAmount = transactions
-		        .filter(t => {
-		            if (t.category === 'Çekilen' && t.type === 'expense') {
-		                const transDate = new Date(t.date);
-		                return transDate.getMonth() === previousMonth && 
-		                       transDate.getFullYear() === previousYear;
-		            }
-		            return false;
-		        })
-		        .reduce((sum, t) => sum + t.amount, 0);
-		    
-		    console.log("Çekilen Betrag aus Vorperiode:", cekilenAmount);
-		    
-		    // Nur hinzufügen, wenn es Çekilen-Ausgaben gibt
-		    if (cekilenAmount > 0) {
-		        ersparnis += cekilenAmount;
-		        console.log("Neue Ersparnis:", ersparnis);
-		    }
-		    
-		    // NUR Ausgaben für Mutfak, Extra Kosten, Benzin und Çekilen aus dem VORMONAT löschen
-		    // EINKOMMEN UND ANDERE KATEGORIEN BLEIBEN ERHALTEN!
-		    const transactionsBeforeReset = transactions.length;
-		    
-		    transactions = transactions.filter(t => {
-		        // BEHALTE ALLE EINKOMMEN!
-		        if (t.type === 'income') return true;
-		        
-		        const transDate = new Date(t.date);
-		        const isFromPreviousMonth = transDate.getMonth() === previousMonth && 
-		                                   transDate.getFullYear() === previousYear;
-		        
-		        // Lösche nur Ausgaben aus dem Vormonat für die spezifischen Kategorien
-		        if (isFromPreviousMonth && 
-		            (t.category === 'Mutfak' || 
-		             t.category === 'Extra Kosten' || 
-		             t.category === 'Benzin' || 
-		             t.category === 'Çekilen')) {
-		            console.log("Lösche Ausgabe:", t.category, t.amount);
-		            return false; // Diese Transaktion löschen
-		        }
-		        
-		        return true; // Diese Transaktion behalten
-		    });
-		    
-		    // BUDGETS NICHT ZURÜCKSETZEN! Die Budget-Eingaben bleiben erhalten
-		    // budgets.mutfak = 0;  <- ENTFERNT
-		    // budgets.extra = 0;   <- ENTFERNT  
-		    // budgets.benzin = 0;  <- ENTFERNT
-		    
-		    console.log("Transaktionen gelöscht:", transactionsBeforeReset - transactions.length);
-		    console.log("Verbleibende Transaktionen:", transactions.length);
-		    console.log("Einkommen bleiben erhalten:", transactions.filter(t => t.type === 'income').length);
-		    console.log("Ersparnis bleibt erhalten:", ersparnis);
-		    
-		    // Nicht-blockierende Benachrichtigung
-		    if (cekilenAmount > 0) {
-		        showNotification('Monatliche Zurücksetzung durchgeführt. ' + cekilenAmount.toFixed(2) + ' € Çekilen wurde zur Ersparnis hinzugefügt.', 'success');
-		    } else {
-		        showNotification('Monatliche Zurücksetzung durchgeführt.', 'info');
-		    }
-		    
-		    console.log("=== ENDE MONATLICHE ZURÜCKSETZUNG ===");
-		}
-				
-		// Nicht-blockierende Benachrichtigung hinzufügen
-		function showNotification(message, type = 'info') {
-		    // Erstelle ein Benachrichtigungselement
-		    const notification = document.createElement('div');
-		    notification.style.cssText = `
-		        position: fixed;
-		        top: 20px;
-		        right: 20px;
-		        padding: 15px 20px;
-		        background: ${type === 'success' ? '#27ae60' : '#3498db'};
-		        color: white;
-		        border-radius: 5px;
-		        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-		        z-index: 10000;
-		        max-width: 300px;
-		        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-		    `;
-		    notification.textContent = message;
-		    
-		    // Füge zur Seite hinzu
-		    document.body.appendChild(notification);
-		    
-		    // Entferne nach 5 Sekunden automatisch
-		    setTimeout(() => {
-		        if (notification.parentNode) {
-		            notification.parentNode.removeChild(notification);
-		        }
-		    }, 5000);
-		}
-		
-		// Initialisierung korrigieren
-		document.addEventListener('DOMContentLoaded', function() {
-		    // Heutiges Datum für Fixkosten setzen
-		    const today = new Date();
-		    const nextMonth = new Date(today.getFullYear(), today.getMonth() + 1, 1);
-		    document.getElementById('fixkostenNextDue').value = nextMonth.toISOString().split('T')[0];
-		    
-		    // Testweise localStorage-Daten laden, falls vorhanden (für Übergangsphase)
-		    try {
-		        const localData = localStorage.getItem('financeData');
-		        if (localData) {
-		            const data = JSON.parse(localData);
-		            transactions = data.transactions || [];
-		            budgets = data.budgets || { mutfak: 0, extra: 0, benzin: 0 };
-		            ersparnis = data.ersparnis || 0;
-		            lastResetDate = data.lastResetDate ? new Date(data.lastResetDate) : null;
-		            fixkosten = data.fixkosten || [];
-		        }
-		    } catch (e) {
-		        console.log("Keine lokalen Daten gefunden");
-		    }
-		    
-		    // Update Display aufrufen (darin wird checkMonthlyReset aufgerufen)
-		    updateDisplay();
-		});
+        // Monatliche Zurücksetzung prüfen
+        function checkMonthlyReset() {
+            const now = new Date();
+            const today = now.getDate();
+            
+            // Prüfen, ob heute der 26. oder später ist und wir noch nicht zurückgesetzt haben
+            if (today >= 26) {
+                const resetDate = new Date(now.getFullYear(), now.getMonth(), 26);
+                
+                // Wenn wir noch nicht in diesem Monat zurückgesetzt haben
+                if (!lastResetDate || lastResetDate < resetDate) {
+                    resetMonthlyData();
+                    lastResetDate = now;
+                    saveData();
+                }
+            }
+        }
 
-		// Manuelle Zurücksetzung erzwingen (für Testzwecke)
-		function forceReset() {
-		    console.log("Manuelle Zurücksetzung erzwingen...");
-		    lastResetDate = null;
-		    checkMonthlyReset();
-		}
-		
-
-		// Update Display Funktion - sicherstellen, dass checkMonthlyReset aufgerufen wird
-		function updateDisplay() {
-			checkMonthlyReset(); // Immer prüfen, ob Zurücksetzung nötig ist
-			updateSummary();
-			updateTransactionList();
-			updateBudgetDisplay();
-			updateErsparnisDisplay();
-			updateFixkostenDisplay();
-			updateMonthDisplay();
-		}
-
-		// Monatsanzeige aktualisieren - KORRIGIERT für 26. Start
-		function updateMonthDisplay() {
-			const now = new Date();
-			const monthNames = ["Januar", "Februar", "März", "April", "Mai", "Juni",
-				"Juli", "August", "September", "Oktober", "November", "Dezember"
-			];
-			
-			// Monat basierend auf 26. Start bestimmen
-			let displayMonth = now.getMonth();
-			let displayYear = now.getFullYear();
-			
-			if (now.getDate() >= 26) {
-				// Zeige nächsten Monat ab dem 26.
-				displayMonth = (now.getMonth() + 1) % 12;
-				if (displayMonth === 0) {
-					displayYear += 1;
-				}
-			}
-			
-			document.getElementById('monthDisplay').textContent = monthNames[displayMonth] + ' ' + displayYear;
-		}
-		
-		// Debug-Funktion für Zurücksetzung
-		function checkResetStatus() {
-			const now = new Date();
-			const today = now.getDate();
-			const resetDate = new Date(now.getFullYear(), now.getMonth(), 26);
-			
-			console.log('Aktuelles Datum:', now);
-			console.log('Heutiger Tag:', today);
-			console.log('Reset-Datum:', resetDate);
-			console.log('Letzte Zurücksetzung:', lastResetDate);
-			console.log('Zurücksetzung nötig:', today >= 26 && (!lastResetDate || lastResetDate < resetDate));
-			console.log('Çekilen Betrag:', transactions
-				.filter(t => t.category === 'Çekilen' && t.type === 'expense')
-				.reduce((sum, t) => sum + t.amount, 0));
-		}
+        // Monatliche Daten zurücksetzen
+        function resetMonthlyData() {
+            // Çekilen zur Ersparnis hinzufügen
+            const cekilenAmount = transactions
+                .filter(t => t.category === 'Çekilen' && t.type === 'expense')
+                .reduce((sum, t) => sum + t.amount, 0);
+            
+            // Nur hinzufügen, wenn es Çekilen-Ausgaben gibt
+            if (cekilenAmount > 0) {
+                ersparnis += cekilenAmount;
+                
+                // Ausgaben für Mutfak, Extra Kosten und Çekilen löschen
+                transactions = transactions.filter(t => 
+                    !(t.type === 'expense' && (t.category === 'Mutfak' || t.category === 'Extra Kosten' || t.category === 'Çekilen'))
+                );
+                
+                // Budgets zurücksetzen
+                budgets.mutfak = 0;
+                budgets.extra = 0;
+                budgets.benzin = 0;
+                
+                alert('Monatliche Zurücksetzung durchgeführt. ' + cekilenAmount.toFixed(2) + ' € Çekilen wurde zur Ersparnis hinzugefügt.');
+                updateDisplay();
+            }
+        }
 
         // Beschreibungsfeld ein-/ausblenden
         function toggleExpenseFields() {
@@ -2187,7 +2027,6 @@
 
         // Anzeige aktualisieren
         function updateDisplay() {
-			checkMonthlyReset(); // <-- NEU hinzufügen!
             updateSummary();
             updateTransactionList();
             updateBudgetDisplay();
