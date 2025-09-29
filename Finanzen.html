@@ -1491,9 +1491,7 @@
             document.getElementById('monthDisplay').textContent = monthNames[displayMonth];
         }
 
-        // Monatliche Zurücksetzung prüfen - VOLLSTÄNDIG KORRIGIERT
-
-		// Monatliche Daten zurücksetzen - VOLLSTÄNDIG KORRIGIERT
+        // Monatliche Daten zurücksetzen - KORRIGIERT (nur Ausgaben löschen)
 		function resetMonthlyData() {
 		    console.log("=== START MONATLICHE ZURÜCKSETZUNG ===");
 		    
@@ -1532,44 +1530,46 @@
 		        console.log("Neue Ersparnis:", ersparnis);
 		    }
 		    
-		    // Ausgaben für Mutfak, Extra Kosten, Benzin und Çekilen aus dem VORMONAT löschen
+		    // NUR Ausgaben für Mutfak, Extra Kosten, Benzin und Çekilen aus dem VORMONAT löschen
+		    // EINKOMMEN UND ANDERE KATEGORIEN BLEIBEN ERHALTEN!
 		    const transactionsBeforeReset = transactions.length;
 		    
 		    transactions = transactions.filter(t => {
-		        // Behalte Einkommen und andere Ausgaben-Kategorien
+		        // BEHALTE ALLE EINKOMMEN!
 		        if (t.type === 'income') return true;
 		        
 		        const transDate = new Date(t.date);
 		        const isFromPreviousMonth = transDate.getMonth() === previousMonth && 
 		                                   transDate.getFullYear() === previousYear;
 		        
-		        // Lösche nur Ausgaben aus dem Vor monat für die spezifischen Kategorien
+		        // Lösche nur Ausgaben aus dem Vormonat für die spezifischen Kategorien
 		        if (isFromPreviousMonth && 
 		            (t.category === 'Mutfak' || 
 		             t.category === 'Extra Kosten' || 
 		             t.category === 'Benzin' || 
 		             t.category === 'Çekilen')) {
+		            console.log("Lösche Ausgabe:", t.category, t.amount);
 		            return false; // Diese Transaktion löschen
 		        }
 		        
 		        return true; // Diese Transaktion behalten
 		    });
 		    
+		    // BUDGETS NICHT ZURÜCKSETZEN! Die Budget-Eingaben bleiben erhalten
+		    // budgets.mutfak = 0;  <- ENTFERNT
+		    // budgets.extra = 0;   <- ENTFERNT  
+		    // budgets.benzin = 0;  <- ENTFERNT
+		    
 		    console.log("Transaktionen gelöscht:", transactionsBeforeReset - transactions.length);
 		    console.log("Verbleibende Transaktionen:", transactions.length);
-		    
-		    // Budgets zurücksetzen
-		    budgets.mutfak = 0;
-		    budgets.extra = 0;
-		    budgets.benzin = 0;
-		    
-		    console.log("Budgets zurückgesetzt:", budgets);
+		    console.log("Einkommen bleiben erhalten:", transactions.filter(t => t.type === 'income').length);
+		    console.log("Ersparnis bleibt erhalten:", ersparnis);
 		    
 		    // Nicht-blockierende Benachrichtigung
 		    if (cekilenAmount > 0) {
 		        showNotification('Monatliche Zurücksetzung durchgeführt. ' + cekilenAmount.toFixed(2) + ' € Çekilen wurde zur Ersparnis hinzugefügt.', 'success');
 		    } else {
-		        showNotification('Monatliche Zurücksetzung durchgeführt. Keine Çekilen-Ausgaben gefunden.', 'info');
+		        showNotification('Monatliche Zurücksetzung durchgeführt.', 'info');
 		    }
 		    
 		    console.log("=== ENDE MONATLICHE ZURÜCKSETZUNG ===");
