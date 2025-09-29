@@ -1455,7 +1455,14 @@
 				}
 			}, 100);
 		}
-		
+		// Daten wiederherstellen (in Browser-Konsole ausführen)
+		function restoreData() {
+		    // Setze lastResetDate zurück, damit die Daten wieder erscheinen
+		    lastResetDate = null;
+		    
+		    // Lade die Seite neu
+		    location.reload();
+		}
 		// Çekilen-Bereich anzeigen
 		function showCekilenSection() {
 			// Speziellen Filter für Çekilen setzen
