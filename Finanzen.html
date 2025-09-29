@@ -1511,28 +1511,28 @@
 
 		// Monatliche Daten zurücksetzen - KORRIGIERT
 		function resetMonthlyData() {
-    console.log("Führe monatliche Zurücksetzung durch...");
-    
-    const cekilenAmount = transactions
-        .filter(t => t.category === 'Çekilen' && t.type === 'expense')
-        .reduce((sum, t) => sum + t.amount, 0);
-    
-    if (cekilenAmount > 0) {
-        ersparnis += cekilenAmount;
-        // Alert entfernt - keine Blockierung mehr
-    }
-    // Alert für "keine Çekilen-Ausgaben" ebenfalls entfernt
-    
-    transactions = transactions.filter(t => 
-        !(t.type === 'expense' && 
-          (t.category === 'Mutfak' || 
-           t.category === 'Extra Kosten' || 
-           t.category === 'Benzin' || 
-           t.category === 'Çekilen'))
-    );
-    
-    updateDisplay();
-}
+		    console.log("Führe monatliche Zurücksetzung durch...");
+		    
+		    const cekilenAmount = transactions
+		        .filter(t => t.category === 'Çekilen' && t.type === 'expense')
+		        .reduce((sum, t) => sum + t.amount, 0);
+		    
+		    if (cekilenAmount > 0) {
+		        ersparnis += cekilenAmount;
+		        // Alert entfernt - keine Blockierung mehr
+		    }
+		    // Alert für "keine Çekilen-Ausgaben" ebenfalls entfernt
+		    
+		    transactions = transactions.filter(t => 
+		        !(t.type === 'expense' && 
+		          (t.category === 'Mutfak' || 
+		           t.category === 'Extra Kosten' || 
+		           t.category === 'Benzin' || 
+		           t.category === 'Çekilen'))
+		    );
+		    
+		    updateDisplay();
+		}
 
 		// Update Display Funktion - sicherstellen, dass checkMonthlyReset aufgerufen wird
 		function updateDisplay() {
