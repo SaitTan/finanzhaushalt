@@ -1283,11 +1283,11 @@
         }
 
         // ==================== DATENVERWALTUNG ====================
-        // Daten-Listener einrichten
-        async function setupDataListener() {
-    		if (unsubscribeListener) unsubscribeListener();
-    
-    		try {
+        // Daten-Listener einrichten - KORRIGIERTE VERSION
+		async function setupDataListener() {
+		    if (unsubscribeListener) unsubscribeListener();
+		
+		    try {
 		        console.log('Setting up Firestore listener for family:', currentFamily);
 		        
 		        // Listener für die Finanzdaten
@@ -1301,7 +1301,25 @@
 		                    transactions = data.transactions || [];
 		                    budgets = data.budgets || { mutfak: 0, extra: 0, benzin: 0 };
 		                    ersparnis = data.ersparnis || 0;
-		                    lastResetDate = data.lastResetDate ? new Date(data.lastResetDate) : null;
+		                    
+		                    // lastResetDate sicher laden - KORREKTUR
+		                    if (data.lastResetDate) {
+		                        try {
+		                            const testDate = new Date(data.lastResetDate);
+		                            if (!isNaN(testDate.getTime())) {
+		                                lastResetDate = data.lastResetDate;
+		                            } else {
+		                                console.warn('Ungültiges lastResetDate gefunden, setze auf null');
+		                                lastResetDate = null;
+		                            }
+		                        } catch (e) {
+		                            console.warn('Fehler beim Verarbeiten von lastResetDate:', e);
+		                            lastResetDate = null;
+		                        }
+		                    } else {
+		                        lastResetDate = null;
+		                    }
+		                    
 		                    fixkosten = data.fixkosten || [];
 		                    
 		                    updateDisplay();
@@ -1333,20 +1351,36 @@
 		        alert("Datenbankverbindung fehlgeschlagen: " + error.message);
 		    }
 		}
-
-        // Daten speichern (angepasst für Firebase)
-        async function saveData() {
+        // Daten speichern - KORRIGIERTE VERSION
+		async function saveData() {
 		    if (!currentUser || !currentFamily) {
 		        console.error('Kein Benutzer oder Familie ausgewählt');
 		        return;
 		    }
 		    
 		    try {
+		        // Stelle sicher, dass lastResetDate ein gültiges Datum ist - KORREKTUR
+		        let safeLastResetDate = null;
+		        if (lastResetDate) {
+		            try {
+		                const testDate = new Date(lastResetDate);
+		                if (!isNaN(testDate.getTime())) {
+		                    safeLastResetDate = lastResetDate;
+		                } else {
+		                    console.warn('Ungültiges lastResetDate, setze auf null');
+		                    safeLastResetDate = null;
+		                }
+		            } catch (e) {
+		                console.warn('Fehler bei lastResetDate Validierung:', e);
+		                safeLastResetDate = null;
+		            }
+		        }
+		        
 		        const saveData = {
 		            transactions: transactions,
 		            budgets: budgets,
 		            ersparnis: ersparnis,
-		            lastResetDate: lastResetDate,
+		            lastResetDate: safeLastResetDate, // Verwende die sichere Version
 		            fixkosten: fixkosten,
 		            lastUpdated: new Date(),
 		            lastUpdatedBy: currentUser.uid
