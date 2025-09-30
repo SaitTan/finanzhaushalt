@@ -1643,7 +1643,7 @@
 		    transactions = transactions.filter(t => {
 		        // Einkommen und andere Kategorien immer behalten
 		        if (t.type === 'income') return true;
-		        if (t.category !== 'Mutfak' && t.category !== 'Extra Kosten' && t.category !== 'Çekilen') return true;
+		        if (t.category !== 'Mutfak' && t.category !== 'Extra Kosten' && t.category !== 'Benzin' && t.category !== 'Çekilen') return true;
 		        
 		        // Prüfe ob Transaktion aus dem Vormonat ist
 		        const transactionDate = new Date(t.date);
