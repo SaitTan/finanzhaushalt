@@ -1550,16 +1550,25 @@
 		    console.log('=== ENDE CHECK ===');
 		}
         
-        // Monatliche Daten zurücksetzen - VERBESSERTE VERSION
+        // Monatliche Daten zurücksetzen - OPTIMIERTE VERSION
 		function resetMonthlyData() {
 		    console.log('Starte monatliche Zurücksetzung...');
+		    const now = new Date();
 		    
-		    // Çekilen zur Ersparnis hinzufügen
+		    // Çekilen zur Ersparnis hinzufügen (nur vom Vormonat)
+		    const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
 		    const cekilenAmount = transactions
-		        .filter(t => t.category === 'Çekilen' && t.type === 'expense')
+		        .filter(t => {
+		            if (t.category === 'Çekilen' && t.type === 'expense') {
+		                const transactionDate = new Date(t.date);
+		                return transactionDate.getMonth() === lastMonth.getMonth() && 
+		                       transactionDate.getFullYear() === lastMonth.getFullYear();
+		            }
+		            return false;
+		        })
 		        .reduce((sum, t) => sum + t.amount, 0);
 		    
-		    console.log('Çekilen Betrag gefunden:', cekilenAmount);
+		    console.log('Çekilen Betrag vom Vormonat:', cekilenAmount);
 		    
 		    // Nur hinzufügen, wenn es Çekilen-Ausgaben gibt
 		    if (cekilenAmount > 0) {
@@ -1567,26 +1576,51 @@
 		        console.log('Neue Ersparnis:', ersparnis);
 		    }
 		    
-		    // Ausgaben für Mutfak, Extra Kosten und Çekilen löschen
+		    // NUR Ausgaben für Mutfak, Extra Kosten und Çekilen vom VORMONAT löschen
 		    const beforeCount = transactions.length;
-		    transactions = transactions.filter(t => 
-		        !(t.type === 'expense' && (t.category === 'Mutfak' || t.category === 'Extra Kosten' || t.category === 'Çekilen'))
-		    );
+		    
+		    transactions = transactions.filter(t => {
+		        // Einkommen und andere Kategorien immer behalten
+		        if (t.type === 'income') return true;
+		        if (t.category !== 'Mutfak' && t.category !== 'Extra Kosten' && t.category !== 'Çekilen') return true;
+		        
+		        // Prüfe ob Transaktion aus dem Vormonat ist
+		        const transactionDate = new Date(t.date);
+		        const transactionMonth = transactionDate.getMonth();
+		        const transactionYear = transactionDate.getFullYear();
+		        
+		        // Aktueller Monat (September = 8), Vormonat (August = 7)
+		        const currentMonth = now.getMonth();
+		        const currentYear = now.getFullYear();
+		        
+		        let isFromLastMonth = false;
+		        
+		        if (currentMonth === 0) { // Januar
+		            isFromLastMonth = transactionMonth === 11 && transactionYear === currentYear - 1;
+		        } else {
+		            isFromLastMonth = transactionMonth === currentMonth - 1 && transactionYear === currentYear;
+		        }
+		        
+		        if (isFromLastMonth) {
+		            console.log(`Lösche Transaktion vom Vormonat: ${t.category} vom ${t.date}`);
+		            return false; // Löschen
+		        }
+		        
+		        return true; // Behalten
+		    });
+		    
 		    const afterCount = transactions.length;
+		    const deletedCount = beforeCount - afterCount;
+		    console.log(`Transaktionen vorher: ${beforeCount}, nachher: ${afterCount}, gelöscht: ${deletedCount}`);
 		    
-		    console.log(`Transaktionen vorher: ${beforeCount}, nachher: ${afterCount}`);
-		    
-		    // Budgets zurücksetzen (optional - je nachdem ob du die Budgets beibehalten willst)
-		    // budgets.mutfak = 0;
-		    // budgets.extra = 0;
-		    // budgets.benzin = 0;
-		    
+		    // Erfolgsmeldung
+		    let message = 'Monatliche Zurücksetzung durchgeführt. ';
 		    if (cekilenAmount > 0) {
-		        alert('Monatliche Zurücksetzung durchgeführt. ' + cekilenAmount.toFixed(2) + ' € Çekilen wurde zur Ersparnis hinzugefügt.');
-		    } else {
-		        alert('Monatliche Zurücksetzung durchgeführt. Keine Çekilen-Ausgaben gefunden.');
+		        message += cekilenAmount.toFixed(2) + ' € Çekilen wurde zur Ersparnis hinzugefügt. ';
 		    }
+		    message += deletedCount + ' Transaktionen vom Vormonat wurden gelöscht.';
 		    
+		    alert(message);
 		    updateDisplay();
 		    console.log('Zurücksetzung abgeschlossen');
 		}
