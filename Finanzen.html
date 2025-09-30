@@ -490,16 +490,6 @@
             margin-top: 10px;
             justify-content: flex-end;
         }
-		.fixkosten-item.next-month {
-		    border-left: 5px solid #3498db;
-		    background-color: #f8f9fa;
-		}
-		
-		.fixkosten-total.next-month {
-		    color: #3498db;
-		    font-weight: bold;
-		}
-		
 		.fixkosten-item.current-month {
 		    border-left: 5px solid #e74c3c;
 		    background-color: #fff5f5;
@@ -507,6 +497,16 @@
 		
 		.fixkosten-total.current-month {
 		    color: #e74c3c;
+		    font-weight: bold;
+		}
+		
+		.fixkosten-item.next-month {
+		    border-left: 5px solid #3498db;
+		    background-color: #f8f9fa;
+		}
+		
+		.fixkosten-total.next-month {
+		    color: #3498db;
 		    font-weight: bold;
 		}
 		
@@ -1588,21 +1588,32 @@
 			}, 100);
 		}
 		
-        // Monatsanzeige aktualisieren
-        function updateMonthDisplay() {
-            const now = new Date();
-            const monthNames = ["Januar", "Februar", "März", "April", "Mai", "Juni",
-                "Juli", "August", "September", "Oktober", "November", "Dezember"
-            ];
-            
-            // Wenn der aktuelle Tag >= 26, zeige den nächsten Monat
-            let displayMonth = now.getMonth();
-            if (now.getDate() >= 26) {
-                displayMonth = (now.getMonth() + 1) % 12;
-            }
-            
-            document.getElementById('monthDisplay').textContent = monthNames[displayMonth];
-        }
+        // Monatsanzeige aktualisieren - MIT ZYKLUS-LOGIK
+		function updateMonthDisplay() {
+		    const now = new Date();
+		    const today = now.getDate();
+		    const monthNames = ["Januar", "Februar", "März", "April", "Mai", "Juni",
+		        "Juli", "August", "September", "Oktober", "November", "Dezember"
+		    ];
+		    
+		    // Bestimme den anzuzeigenden Monat basierend auf Zyklus
+		    let displayMonth, displayYear;
+		    
+		    if (today >= 26) {
+		        // Ab 26.: zeige nächsten Monat
+		        displayMonth = (now.getMonth() + 1) % 12;
+		        displayYear = now.getFullYear();
+		        if (now.getMonth() === 11) { // Dezember -> Januar
+		            displayYear += 1;
+		        }
+		    } else {
+		        // Vor dem 26.: zeige diesen Monat
+		        displayMonth = now.getMonth();
+		        displayYear = now.getFullYear();
+		    }
+		    
+		    document.getElementById('monthDisplay').textContent = `${monthNames[displayMonth]} ${displayYear}`;
+		}
 
         
         // Monatliche Zurücksetzung prüfen - FINALE VERSION
@@ -2059,11 +2070,31 @@
 		            return new Date(dueDate.getFullYear(), dueDate.getMonth() + 1, dueDate.getDate());
 		    }
 		}	        
-        // Berechne monatliche Fixkosten für den aktuellen Monat - GESAMTER BETRAG
+
+		// Berechne monatliche Fixkosten für den aktuellen ZYKLUS (ab 26.)
 		function calculateMonthlyFixkosten() {
 		    const now = new Date();
-		    const currentMonth = now.getMonth();
-		    const currentYear = now.getFullYear();
+		    const today = now.getDate();
+		    
+		    // Bestimme den aktuellen Zyklus-Monat
+		    let targetMonth, targetYear;
+		    
+		    if (today >= 26) {
+		        // Ab 26.: zeige Fixkosten für nächsten Monat
+		        targetMonth = now.getMonth() + 1;
+		        targetYear = now.getFullYear();
+		        // Handle Dezember -> Januar Übergang
+		        if (targetMonth > 11) {
+		            targetMonth = 0;
+		            targetYear += 1;
+		        }
+		    } else {
+		        // Vor dem 26.: zeige Fixkosten für diesen Monat
+		        targetMonth = now.getMonth();
+		        targetYear = now.getFullYear();
+		    }
+		    
+		    console.log(`Berechne Fixkosten für Zyklus: ${targetMonth + 1}.${targetYear} (heute: ${today}.${now.getMonth() + 1})`);
 		    
 		    let monthlyFixkosten = 0;
 		    
@@ -2074,26 +2105,56 @@
 		            return; // Überspringe abgelaufene Fixkosten
 		        }
 		        
-		        // Prüfe ob die nächste Fälligkeit in diesem Monat liegt
+		        // Prüfe ob die nächste Fälligkeit im Ziel-Monat liegt
 		        const nextDue = new Date(item.nextDue);
-		        if (nextDue.getMonth() === currentMonth && nextDue.getFullYear() === currentYear) {
-		            // GESAMTER BETRAG wird in diesem Monat bezahlt
+		        if (nextDue.getMonth() === targetMonth && nextDue.getFullYear() === targetYear) {
+		            // GESAMTER BETRAG wird in diesem Zyklus bezahlt
 		            monthlyFixkosten += item.amount;
-		            console.log(`Fixkosten "${item.title}": ${item.amount}€ ${item.interval} (fällig in diesem Monat)`);
+		            console.log(`Fixkosten "${item.title}": ${item.amount}€ ${item.interval} (fällig im Ziel-Zyklus)`);
 		        }
 		    });
 		    
-		    console.log(`Fixkosten gesamt diesen Monat: ${monthlyFixkosten.toFixed(2)}€`);
+		    console.log(`Fixkosten gesamt für Zyklus: ${monthlyFixkosten.toFixed(2)}€`);
 		    return monthlyFixkosten;
 		}
 
-		// Fixkosten-Anzeige aktualisieren - GESAMTER BETRAG
+		// Fixkosten-Anzeige aktualisieren - MIT ZYKLUS-LOGIK (ab 26.)
 		function updateFixkostenDisplay() {
 		    const fixkostenContainer = document.getElementById('fixkostenItems');
 		    const now = new Date();
-		    const currentMonth = now.getMonth();
-		    const currentYear = now.getFullYear();
-		    const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+		    const today = now.getDate();
+		    
+		    // Bestimme den aktuellen und nächsten Zyklus
+		    let currentCycleMonth, currentCycleYear, nextCycleMonth, nextCycleYear;
+		    
+		    if (today >= 26) {
+		        // Ab 26.: aktueller Zyklus = nächster Monat
+		        currentCycleMonth = now.getMonth() + 1;
+		        currentCycleYear = now.getFullYear();
+		        nextCycleMonth = currentCycleMonth + 1;
+		        nextCycleYear = currentCycleYear;
+		        
+		        // Handle Monats- und Jahresübergänge
+		        if (currentCycleMonth > 11) {
+		            currentCycleMonth = 0;
+		            currentCycleYear += 1;
+		        }
+		        if (nextCycleMonth > 11) {
+		            nextCycleMonth = 0;
+		            nextCycleYear += 1;
+		        }
+		    } else {
+		        // Vor dem 26.: aktueller Zyklus = dieser Monat
+		        currentCycleMonth = now.getMonth();
+		        currentCycleYear = now.getFullYear();
+		        nextCycleMonth = currentCycleMonth + 1;
+		        nextCycleYear = currentCycleYear;
+		        
+		        if (nextCycleMonth > 11) {
+		            nextCycleMonth = 0;
+		            nextCycleYear += 1;
+		        }
+		    }
 		
 		    if (fixkosten.length === 0) {
 		        fixkostenContainer.innerHTML = '<div style="padding: 20px; text-align: center; color: #7f8c8d;">Noch keine Fixkosten vorhanden</div>';
@@ -2101,21 +2162,21 @@
 		        return;
 		    }
 		
-		    let currentMonthTotal = 0;
-		    let nextMonthTotal = 0;
+		    let currentCycleTotal = 0;
+		    let nextCycleTotal = 0;
 		    let fixkostenHTML = '';
 		
 		    fixkosten.forEach(item => {
 		        const nextDue = new Date(item.nextDue);
-		        const isCurrentMonth = nextDue.getMonth() === currentMonth && nextDue.getFullYear() === currentYear;
-		        const isNextMonth = nextDue.getMonth() === nextMonth.getMonth() && nextDue.getFullYear() === nextMonth.getFullYear();
+		        const isCurrentCycle = nextDue.getMonth() === currentCycleMonth && nextDue.getFullYear() === currentCycleYear;
+		        const isNextCycle = nextDue.getMonth() === nextCycleMonth && nextDue.getFullYear() === nextCycleYear;
 		
 		        // Addiere GESAMTEN BETRAG zur Gesamtsumme
-		        if (isCurrentMonth) {
-		            currentMonthTotal += item.amount;
+		        if (isCurrentCycle) {
+		            currentCycleTotal += item.amount;
 		        }
-		        if (isNextMonth) {
-		            nextMonthTotal += item.amount;
+		        if (isNextCycle) {
+		            nextCycleTotal += item.amount;
 		        }
 		
 		        const intervalText = {
@@ -2128,18 +2189,23 @@
 		
 		        const endDateText = item.endDate ? ` • Endet am: ${new Date(item.endDate).toLocaleDateString('de-DE')}` : '';
 		
+		        // Zyklus-Info für Anzeige
+		        const cycleInfo = today >= 26 ? 
+		            `(Aktueller Zyklus: ${currentCycleMonth + 1}.${currentCycleYear})` : 
+		            `(Aktueller Zyklus: ${currentCycleMonth + 1}.${currentCycleYear})`;
+		
 		        fixkostenHTML += `
-		            <div class="fixkosten-item ${isCurrentMonth ? 'current-month' : isNextMonth ? 'next-month' : 'other-month'}">
+		            <div class="fixkosten-item ${isCurrentCycle ? 'current-month' : isNextCycle ? 'next-month' : 'other-month'}">
 		                <div class="fixkosten-header">
 		                    <span class="fixkosten-title">${item.title}</span>
-		                    <span class="fixkosten-amount" style="color: ${isCurrentMonth ? '#e74c3c' : isNextMonth ? '#3498db' : '#f39c12'}">
+		                    <span class="fixkosten-amount" style="color: ${isCurrentCycle ? '#e74c3c' : isNextCycle ? '#3498db' : '#f39c12'}">
 		                        ${item.amount.toFixed(2)} €
 		                    </span>
 		                </div>
 		                <div class="fixkosten-details">
 		                    ${intervalText} • Nächste Fälligkeit: ${new Date(item.nextDue).toLocaleDateString('de-DE')}${endDateText}
-		                    ${isCurrentMonth ? ' <span style="color:#e74c3c; font-weight:bold;">(Dieser Monat)</span>' : ''}
-		                    ${isNextMonth ? ' <span style="color:#3498db; font-weight:bold;">(Nächster Monat)</span>' : ''}
+		                    ${isCurrentCycle ? ' <span style="color:#e74c3c; font-weight:bold;">(Aktueller Zyklus)</span>' : ''}
+		                    ${isNextCycle ? ' <span style="color:#3498db; font-weight:bold;">(Nächster Zyklus)</span>' : ''}
 		                </div>
 		                <div class="fixkosten-actions">
 		                    <button class="edit-btn" onclick="editFixkosten(${item.id})">✏️</button>
@@ -2150,20 +2216,28 @@
 		    });
 		
 		    fixkostenContainer.innerHTML = fixkostenHTML;
-		    document.getElementById('currentMonthFixkostenTotal').textContent = currentMonthTotal.toFixed(2) + ' €';
+		    document.getElementById('currentMonthFixkostenTotal').textContent = currentCycleTotal.toFixed(2) + ' €';
 		    
-		    // Zeige auch die Fixkosten für nächsten Monat an
+		    // Zeige auch die Fixkosten für nächsten Zyklus an
 		    const summaryElement = document.querySelector('.fixkosten-summary');
+		    const currentCycleLabel = today >= 26 ? 
+		        `Aktueller Zyklus (ab 26.): ${currentCycleMonth + 1}.${currentCycleYear}` : 
+		        `Aktueller Zyklus: ${currentCycleMonth + 1}.${currentCycleYear}`;
+		        
+		    const nextCycleLabel = today >= 26 ? 
+		        `Nächster Zyklus: ${nextCycleMonth + 1}.${nextCycleYear}` : 
+		        `Nächster Zyklus (ab 26.): ${nextCycleMonth + 1}.${nextCycleYear}`;
+		    
 		    summaryElement.innerHTML = `
 		        <h4>Fixkosten Übersicht</h4>
 		        <div style="display: flex; justify-content: space-around; margin-top: 10px;">
 		            <div>
-		                <div style="font-size: 14px; color: #7f8c8d;">Dieser Monat</div>
-		                <div class="fixkosten-total current-month">${currentMonthTotal.toFixed(2)} €</div>
+		                <div style="font-size: 14px; color: #7f8c8d;">${currentCycleLabel}</div>
+		                <div class="fixkosten-total current-month">${currentCycleTotal.toFixed(2)} €</div>
 		            </div>
 		            <div>
-		                <div style="font-size: 14px; color: #7f8c8d;">Nächster Monat</div>
-		                <div class="fixkosten-total next-month">${nextMonthTotal.toFixed(2)} €</div>
+		                <div style="font-size: 14px; color: #7f8c8d;">${nextCycleLabel}</div>
+		                <div class="fixkosten-total next-month">${nextCycleTotal.toFixed(2)} €</div>
 		            </div>
 		        </div>
 		    `;
