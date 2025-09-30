@@ -514,6 +514,16 @@
 		    border-left: 5px solid #f39c12;
 		    background-color: #fffaf0;
 		}
+		/* Besondere Kennzeichnung für monatliche Fixkosten */
+		.fixkosten-item.monthly {
+		    border-left: 5px solid #27ae60 !important;
+		    background-color: #f0fff4 !important;
+		}
+		
+		.fixkosten-details .monthly-indicator {
+		    color: #27ae60;
+		    font-weight: bold;
+		}
 						        
         .filter-buttons {
             display: flex;
@@ -2012,7 +2022,7 @@
 
         // ==================== KORRIGIERTE FIXKOSTEN-ANZEIGE ====================
 
-		// Fixkosten für den nächsten Monat anpassen - GESAMTER BETRAG
+		// Fixkosten für den nächsten Monat anpassen - MIT MONATLICHEN FIXKOSTEN
 		function updateFixkostenForNextMonth() {
 		    console.log('Passe Fixkosten für nächsten Monat an...');
 		    const now = new Date();
@@ -2023,8 +2033,15 @@
 		    fixkosten.forEach(item => {
 		        const nextDue = new Date(item.nextDue);
 		        
-		        // Prüfe ob die nächste Fälligkeit in der Vergangenheit liegt oder diesen Monat ist
-		        if (nextDue <= now || nextDue.getMonth() === now.getMonth()) {
+		        // Für MONATLICHE Fixkosten: Nächste Fälligkeit immer auf nächsten Monat setzen
+		        if (item.interval === 'monthly') {
+		            const newNextDue = new Date(now.getFullYear(), now.getMonth() + 1, nextDue.getDate());
+		            item.nextDue = newNextDue.toISOString().split('T')[0];
+		            updatedCount++;
+		            console.log(`Monatliche Fixkosten "${item.title}": neue Fälligkeit ${item.nextDue}`);
+		        }
+		        // Für ANDERE Intervalle: Nur aktualisieren wenn fällig in diesem Monat oder vergangen
+		        else if (nextDue <= now || nextDue.getMonth() === now.getMonth()) {
 		            // Berechne die nächste Fälligkeit basierend auf dem Intervall
 		            let newNextDue = calculateNextDueDate(nextDue, item.interval);
 		            
@@ -2037,8 +2054,7 @@
 		            // Aktualisiere die nächste Fälligkeit
 		            item.nextDue = newNextDue.toISOString().split('T')[0];
 		            updatedCount++;
-		            
-		            console.log(`Aktualisiere "${item.title}": neue Fälligkeit ${item.nextDue} (${item.interval})`);
+		            console.log(`Fixkosten "${item.title}": neue Fälligkeit ${item.nextDue} (${item.interval})`);
 		        }
 		    });
 		    
@@ -2105,10 +2121,15 @@
 		            return; // Überspringe abgelaufene Fixkosten
 		        }
 		        
-		        // Prüfe ob die nächste Fälligkeit im Ziel-Monat liegt
 		        const nextDue = new Date(item.nextDue);
-		        if (nextDue.getMonth() === targetMonth && nextDue.getFullYear() === targetYear) {
-		            // GESAMTER BETRAG wird in diesem Zyklus bezahlt
+		        
+		        // MONATLICHE Fixkosten: Immer aktiv im aktuellen Zyklus
+		        if (item.interval === 'monthly') {
+		            monthlyFixkosten += item.amount;
+		            console.log(`Monatliche Fixkosten "${item.title}": ${item.amount}€ (immer aktiv)`);
+		        } 
+		        // ANDERE Intervalle: Nur aktiv wenn Fälligkeit im Ziel-Monat liegt
+		        else if (nextDue.getMonth() === targetMonth && nextDue.getFullYear() === targetYear) {
 		            monthlyFixkosten += item.amount;
 		            console.log(`Fixkosten "${item.title}": ${item.amount}€ ${item.interval} (fällig im Ziel-Zyklus)`);
 		        }
@@ -2118,7 +2139,7 @@
 		    return monthlyFixkosten;
 		}
 
-		// Fixkosten-Anzeige aktualisieren - MIT ZYKLUS-LOGIK (ab 26.)
+		// Fixkosten-Anzeige aktualisieren - MIT MONATLICHEN FIXKOSTEN
 		function updateFixkostenDisplay() {
 		    const fixkostenContainer = document.getElementById('fixkostenItems');
 		    const now = new Date();
@@ -2168,8 +2189,21 @@
 		
 		    fixkosten.forEach(item => {
 		        const nextDue = new Date(item.nextDue);
-		        const isCurrentCycle = nextDue.getMonth() === currentCycleMonth && nextDue.getFullYear() === currentCycleYear;
-		        const isNextCycle = nextDue.getMonth() === nextCycleMonth && nextDue.getFullYear() === nextCycleYear;
+		        
+		        // Prüfe ob Fixkosten im aktuellen Zyklus aktiv ist
+		        let isCurrentCycle = false;
+		        let isNextCycle = false;
+		        
+		        // MONATLICHE Fixkosten: Immer im aktuellen Zyklus aktiv
+		        if (item.interval === 'monthly') {
+		            isCurrentCycle = true;
+		            // Für nächsten Zyklus auch immer aktiv (da monatlich)
+		            isNextCycle = true;
+		        } else {
+		            // ANDERE Intervalle: Nur aktiv wenn Fälligkeit im entsprechenden Zyklus
+		            isCurrentCycle = nextDue.getMonth() === currentCycleMonth && nextDue.getFullYear() === currentCycleYear;
+		            isNextCycle = nextDue.getMonth() === nextCycleMonth && nextDue.getFullYear() === nextCycleYear;
+		        }
 		
 		        // Addiere GESAMTEN BETRAG zur Gesamtsumme
 		        if (isCurrentCycle) {
@@ -2189,10 +2223,8 @@
 		
 		        const endDateText = item.endDate ? ` • Endet am: ${new Date(item.endDate).toLocaleDateString('de-DE')}` : '';
 		
-		        // Zyklus-Info für Anzeige
-		        const cycleInfo = today >= 26 ? 
-		            `(Aktueller Zyklus: ${currentCycleMonth + 1}.${currentCycleYear})` : 
-		            `(Aktueller Zyklus: ${currentCycleMonth + 1}.${currentCycleYear})`;
+		        // Besondere Kennzeichnung für monatliche Fixkosten
+		        const monthlyIndicator = item.interval === 'monthly' ? ' <span style="color:#27ae60; font-weight:bold;">(Monatlich)</span>' : '';
 		
 		        fixkostenHTML += `
 		            <div class="fixkosten-item ${isCurrentCycle ? 'current-month' : isNextCycle ? 'next-month' : 'other-month'}">
@@ -2204,8 +2236,9 @@
 		                </div>
 		                <div class="fixkosten-details">
 		                    ${intervalText} • Nächste Fälligkeit: ${new Date(item.nextDue).toLocaleDateString('de-DE')}${endDateText}
-		                    ${isCurrentCycle ? ' <span style="color:#e74c3c; font-weight:bold;">(Aktueller Zyklus)</span>' : ''}
-		                    ${isNextCycle ? ' <span style="color:#3498db; font-weight:bold;">(Nächster Zyklus)</span>' : ''}
+		                    ${monthlyIndicator}
+		                    ${isCurrentCycle && item.interval !== 'monthly' ? ' <span style="color:#e74c3c; font-weight:bold;">(Aktueller Zyklus)</span>' : ''}
+		                    ${isNextCycle && item.interval !== 'monthly' ? ' <span style="color:#3498db; font-weight:bold;">(Nächster Zyklus)</span>' : ''}
 		                </div>
 		                <div class="fixkosten-actions">
 		                    <button class="edit-btn" onclick="editFixkosten(${item.id})">✏️</button>
@@ -2242,7 +2275,6 @@
 		        </div>
 		    `;
 		}
-
         // Ersparnis aktualisieren
         function updateErsparnis(amount) {
             ersparnis = parseFloat(amount) || 0;
