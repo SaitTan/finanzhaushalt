@@ -2087,56 +2087,50 @@
 		    }
 		}	        
 
-		// Berechne monatliche Fixkosten für den aktuellen ZYKLUS (ab 26.)
+		// Berechne monatliche Fixkosten für den aktuellen ZYKLUS - VERBESSERT
 		function calculateMonthlyFixkosten() {
 		    const now = new Date();
 		    const today = now.getDate();
 		    
-		    // Bestimme den aktuellen Zyklus-Monat
-		    let targetMonth, targetYear;
+		    // Bestimme den aktuellen Zyklus-Monat (EXAKT WIE IN updateFixkostenDisplay)
+		    let currentCycleMonth, currentCycleYear;
 		    
 		    if (today >= 26) {
-		        // Ab 26.: zeige Fixkosten für nächsten Monat
-		        targetMonth = now.getMonth() + 1;
-		        targetYear = now.getFullYear();
-		        // Handle Dezember -> Januar Übergang
-		        if (targetMonth > 11) {
-		            targetMonth = 0;
-		            targetYear += 1;
+		        currentCycleMonth = now.getMonth() + 1;
+		        currentCycleYear = now.getFullYear();
+		        if (currentCycleMonth > 11) {
+		            currentCycleMonth = 0;
+		            currentCycleYear += 1;
 		        }
 		    } else {
-		        // Vor dem 26.: zeige Fixkosten für diesen Monat
-		        targetMonth = now.getMonth();
-		        targetYear = now.getFullYear();
+		        currentCycleMonth = now.getMonth();
+		        currentCycleYear = now.getFullYear();
 		    }
-		    
-		    console.log(`Berechne Fixkosten für Zyklus: ${targetMonth + 1}.${targetYear} (heute: ${today}.${now.getMonth() + 1})`);
-		    
-		    let monthlyFixkosten = 0;
+		
+		    let currentCycleTotal = 0;
 		    
 		    fixkosten.forEach(item => {
-		        // Prüfe ob Fixkosten noch aktiv (kein Enddatum oder Enddatum in der Zukunft)
 		        const endDate = item.endDate ? new Date(item.endDate) : null;
 		        if (endDate && endDate < now) {
-		            return; // Überspringe abgelaufene Fixkosten
+		            return;
 		        }
 		        
 		        const nextDue = new Date(item.nextDue);
+		        let isCurrentCycle = false;
 		        
-		        // MONATLICHE Fixkosten: Immer aktiv im aktuellen Zyklus
+		        // GENAU DIE GLEICHE LOGIK WIE IN updateFixkostenDisplay
 		        if (item.interval === 'monthly') {
-		            monthlyFixkosten += item.amount;
-		            console.log(`Monatliche Fixkosten "${item.title}": ${item.amount}€ (immer aktiv)`);
-		        } 
-		        // ANDERE Intervalle: Nur aktiv wenn Fälligkeit im Ziel-Monat liegt
-		        else if (nextDue.getMonth() === targetMonth && nextDue.getFullYear() === targetYear) {
-		            monthlyFixkosten += item.amount;
-		            console.log(`Fixkosten "${item.title}": ${item.amount}€ ${item.interval} (fällig im Ziel-Zyklus)`);
+		            isCurrentCycle = true;
+		        } else {
+		            isCurrentCycle = nextDue.getMonth() === currentCycleMonth && nextDue.getFullYear() === currentCycleYear;
+		        }
+		
+		        if (isCurrentCycle) {
+		            currentCycleTotal += item.amount;
 		        }
 		    });
 		    
-		    console.log(`Fixkosten gesamt für Zyklus: ${monthlyFixkosten.toFixed(2)}€`);
-		    return monthlyFixkosten;
+		    return currentCycleTotal;
 		}
 
 		// Fixkosten-Anzeige aktualisieren - MIT MONATLICHEN FIXKOSTEN
