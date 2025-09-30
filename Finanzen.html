@@ -490,7 +490,14 @@
             margin-top: 10px;
             justify-content: flex-end;
         }
-        
+		.fixkosten-item.next-month {
+		    border-left: 5px solid #3498db;
+		}
+		
+		.fixkosten-total.next-month {
+		    color: #3498db;
+		}
+		        
         .filter-buttons {
             display: flex;
             gap: 10px;
@@ -1600,6 +1607,7 @@
 		        if (!lastResetDate || lastResetString !== todayString) {
 		            console.log('🔄 FÜHRE ZURÜCKSETZUNG DURCH!');
 		            resetMonthlyData();
+					updateFixkostenForNextMonth(); // NEU: Fixkosten für nächsten Monat anpassen
 		            lastResetDate = now.toISOString();
 		            saveData();
 		        } else {
@@ -1975,11 +1983,13 @@
         }
 
         // ==================== KORRIGIERTE FIXKOSTEN-ANZEIGE ====================
+		// Fixkosten-Anzeige aktualisieren - VERBESSERT
 		function updateFixkostenDisplay() {
 		    const fixkostenContainer = document.getElementById('fixkostenItems');
 		    const now = new Date();
 		    const currentMonth = now.getMonth();
 		    const currentYear = now.getFullYear();
+		    const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
 		
 		    if (fixkosten.length === 0) {
 		        fixkostenContainer.innerHTML = '<div style="padding: 20px; text-align: center; color: #7f8c8d;">Noch keine Fixkosten vorhanden</div>';
@@ -1988,15 +1998,37 @@
 		    }
 		
 		    let currentMonthTotal = 0;
+		    let nextMonthTotal = 0;
 		    let fixkostenHTML = '';
 		
 		    fixkosten.forEach(item => {
 		        const nextDue = new Date(item.nextDue);
 		        const isCurrentMonth = nextDue.getMonth() === currentMonth && nextDue.getFullYear() === currentYear;
+		        const isNextMonth = nextDue.getMonth() === nextMonth.getMonth() && nextDue.getFullYear() === nextMonth.getFullYear();
 		
-		        // Addiere zur Gesamtsumme, wenn es der aktuelle Monat ist
+		        // Berechne monatlichen Anteil für Anzeige
+		        let monthlyAmount = item.amount;
+		        switch (item.interval) {
+		            case 'bimonthly':
+		                monthlyAmount = item.amount / 2;
+		                break;
+		            case 'quarterly':
+		                monthlyAmount = item.amount / 3;
+		                break;
+		            case 'half-yearly':
+		                monthlyAmount = item.amount / 6;
+		                break;
+		            case 'yearly':
+		                monthlyAmount = item.amount / 12;
+		                break;
+		        }
+		
+		        // Addiere zur Gesamtsumme
 		        if (isCurrentMonth) {
-		            currentMonthTotal += item.amount;
+		            currentMonthTotal += monthlyAmount;
+		        }
+		        if (isNextMonth) {
+		            nextMonthTotal += monthlyAmount;
 		        }
 		
 		        const intervalText = {
@@ -2009,16 +2041,18 @@
 		
 		        const endDateText = item.endDate ? ` • Endet am: ${new Date(item.endDate).toLocaleDateString('de-DE')}` : '';
 		
-		        // KORRIGIERTE HTML-Struktur - geschlossene Tags und korrekte Formatierung
 		        fixkostenHTML += `
-		            <div class="fixkosten-item ${isCurrentMonth ? 'current-month' : 'other-month'}">
+		            <div class="fixkosten-item ${isCurrentMonth ? 'current-month' : isNextMonth ? 'next-month' : 'other-month'}">
 		                <div class="fixkosten-header">
 		                    <span class="fixkosten-title">${item.title}</span>
-		                    <span class="fixkosten-amount" style="color: ${isCurrentMonth ? '#e74c3c' : '#f39c12'}">${item.amount.toFixed(2)} €</span>
+		                    <span class="fixkosten-amount" style="color: ${isCurrentMonth ? '#e74c3c' : isNextMonth ? '#3498db' : '#f39c12'}">
+		                        ${item.amount.toFixed(2)} € (${monthlyAmount.toFixed(2)} €/Monat)
+		                    </span>
 		                </div>
 		                <div class="fixkosten-details">
 		                    ${intervalText} • Nächste Fälligkeit: ${new Date(item.nextDue).toLocaleDateString('de-DE')}${endDateText}
 		                    ${isCurrentMonth ? ' <span style="color:#e74c3c; font-weight:bold;">(Dieser Monat)</span>' : ''}
+		                    ${isNextMonth ? ' <span style="color:#3498db; font-weight:bold;">(Nächster Monat)</span>' : ''}
 		                </div>
 		                <div class="fixkosten-actions">
 		                    <button class="edit-btn" onclick="editFixkosten(${item.id})">✏️</button>
@@ -2030,33 +2064,125 @@
 		
 		    fixkostenContainer.innerHTML = fixkostenHTML;
 		    document.getElementById('currentMonthFixkostenTotal').textContent = currentMonthTotal.toFixed(2) + ' €';
+		    
+		    // Zeige auch die Fixkosten für nächsten Monat an
+		    const summaryElement = document.querySelector('.fixkosten-summary');
+		    summaryElement.innerHTML = `
+		        <h4>Fixkosten Übersicht</h4>
+		        <div style="display: flex; justify-content: space-around; margin-top: 10px;">
+		            <div>
+		                <div style="font-size: 14px; color: #7f8c8d;">Dieser Monat</div>
+		                <div class="fixkosten-total current-month">${currentMonthTotal.toFixed(2)} €</div>
+		            </div>
+		            <div>
+		                <div style="font-size: 14px; color: #7f8c8d;">Nächster Monat</div>
+		                <div class="fixkosten-total next-month">${nextMonthTotal.toFixed(2)} €</div>
+		            </div>
+		        </div>
+		    `;
+		}
+		// Fixkosten für den nächsten Monat anpassen
+		function updateFixkostenForNextMonth() {
+		    console.log('Passe Fixkosten für nächsten Monat an...');
+		    const now = new Date();
+		    const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+		    
+		    let updatedCount = 0;
+		    
+		    fixkosten.forEach(item => {
+		        const nextDue = new Date(item.nextDue);
+		        
+		        // Prüfe ob die nächste Fälligkeit in der Vergangenheit liegt oder diesen Monat ist
+		        if (nextDue <= now || nextDue.getMonth() === now.getMonth()) {
+		            // Berechne die nächste Fälligkeit basierend auf dem Intervall
+		            let newNextDue = calculateNextDueDate(nextDue, item.interval);
+		            
+		            // Prüfe ob Enddatum erreicht wurde
+		            if (item.endDate && newNextDue > new Date(item.endDate)) {
+		                console.log(`Fixkosten "${item.title}" ist abgelaufen`);
+		                return; // Überspringe abgelaufene Fixkosten
+		            }
+		            
+		            // Aktualisiere die nächste Fälligkeit
+		            item.nextDue = newNextDue.toISOString().split('T')[0];
+		            updatedCount++;
+		            
+		            console.log(`Aktualisiere "${item.title}": neue Fälligkeit ${item.nextDue}`);
+		        }
+		    });
+		    
+		    console.log(`${updatedCount} Fixkosten wurden für den nächsten Monat aktualisiert`);
+		    updateFixkostenDisplay();
 		}
     
-			        
-        // Berechne monatliche Fixkosten für den aktuellen Monat
+		// Nächste Fälligkeit basierend auf Intervall berechnen
+		function calculateNextDueDate(currentDue, interval) {
+		    const dueDate = new Date(currentDue);
+		    
+		    switch (interval) {
+		        case 'monthly':
+		            return new Date(dueDate.getFullYear(), dueDate.getMonth() + 1, dueDate.getDate());
+		            
+		        case 'bimonthly':
+		            return new Date(dueDate.getFullYear(), dueDate.getMonth() + 2, dueDate.getDate());
+		            
+		        case 'quarterly':
+		            return new Date(dueDate.getFullYear(), dueDate.getMonth() + 3, dueDate.getDate());
+		            
+		        case 'half-yearly':
+		            return new Date(dueDate.getFullYear(), dueDate.getMonth() + 6, dueDate.getDate());
+		            
+		        case 'yearly':
+		            return new Date(dueDate.getFullYear() + 1, dueDate.getMonth(), dueDate.getDate());
+		            
+		        default:
+		            return new Date(dueDate.getFullYear(), dueDate.getMonth() + 1, dueDate.getDate());
+		    }
+		}	        
+        // Berechne monatliche Fixkosten für den aktuellen Monat - KORRIGIERT
 		function calculateMonthlyFixkosten() {
-			const now = new Date();
-			const currentMonth = now.getMonth();
-			const currentYear = now.getFullYear();
-			
-			let monthlyFixkosten = 0;
-			
-			fixkosten.forEach(item => {
-				// Prüfe ob Fixkosten noch aktiv (kein Enddatum oder Enddatum in der Zukunft)
-				const endDate = item.endDate ? new Date(item.endDate) : null;
-				if (endDate && endDate < now) {
-					return; // Überspringe abgelaufene Fixkosten
-				}
-				
-				// Prüfe ob die nächste Fälligkeit in diesem Monat liegt
-				const nextDue = new Date(item.nextDue);
-				if (nextDue.getMonth() === currentMonth && nextDue.getFullYear() === currentYear) {
-					// Verwende den vollen Betrag statt den monatlichen Anteil
-					monthlyFixkosten += item.amount;
-				}
-			});
-			
-			return monthlyFixkosten;
+		    const now = new Date();
+		    const currentMonth = now.getMonth();
+		    const currentYear = now.getFullYear();
+		    
+		    let monthlyFixkosten = 0;
+		    
+		    fixkosten.forEach(item => {
+		        // Prüfe ob Fixkosten noch aktiv (kein Enddatum oder Enddatum in der Zukunft)
+		        const endDate = item.endDate ? new Date(item.endDate) : null;
+		        if (endDate && endDate < now) {
+		            return; // Überspringe abgelaufene Fixkosten
+		        }
+		        
+		        // Prüfe ob die nächste Fälligkeit in diesem Monat liegt
+		        const nextDue = new Date(item.nextDue);
+		        if (nextDue.getMonth() === currentMonth && nextDue.getFullYear() === currentYear) {
+		            // Für nicht-monatliche Fixkosten: berechne monatlichen Anteil
+		            let monthlyAmount = item.amount;
+		            
+		            switch (item.interval) {
+		                case 'bimonthly':
+		                    monthlyAmount = item.amount / 2;
+		                    break;
+		                case 'quarterly':
+		                    monthlyAmount = item.amount / 3;
+		                    break;
+		                case 'half-yearly':
+		                    monthlyAmount = item.amount / 6;
+		                    break;
+		                case 'yearly':
+		                    monthlyAmount = item.amount / 12;
+		                    break;
+		                // monthly bleibt gleich
+		            }
+		            
+		            monthlyFixkosten += monthlyAmount;
+		            console.log(`Fixkosten "${item.title}": ${item.amount}€ ${item.interval} = ${monthlyAmount.toFixed(2)}€ monatlich`);
+		        }
+		    });
+		    
+		    console.log(`Monatliche Fixkosten gesamt: ${monthlyFixkosten.toFixed(2)}€`);
+		    return monthlyFixkosten;
 		}
 
         // Ersparnis aktualisieren
