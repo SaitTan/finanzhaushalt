@@ -1493,87 +1493,107 @@
         }
 
         
-        // Monatliche Zurücksetzung prüfen
-        function checkMonthlyReset() {
-            const now = new Date();
-            const today = now.getDate();
-            const currentMonth = now.getMonth();
-            const currentYear = now.getFullYear();
-            
-            console.log('=== CHECK MONTHLY RESET ===');
-            console.log('Heutiges Datum:', now.toLocaleDateString('de-DE'));
-            console.log('Tag im Monat:', today);
-            console.log('Aktueller Monat:', currentMonth);
-            console.log('Aktuelles Jahr:', currentYear);
-            console.log('lastResetDate (raw):', lastResetDate);
-            
-            // Prüfen, ob heute der 26. oder später ist
-            if (today >= 26) {
-                console.log('✓ Tag ist >= 26');
-                
-                let shouldReset = false;
-                
-                if (!lastResetDate) {
-                    // Noch nie zurückgesetzt
-                    console.log('→ Noch nie zurückgesetzt');
-                    shouldReset = true;
-                } else {
-                    // Konvertiere lastResetDate zu Date-Objekt falls es ein String ist
-                    const lastReset = typeof lastResetDate === 'string' ? new Date(lastResetDate) : lastResetDate;
-                    console.log('Letztes Reset-Datum:', lastReset.toLocaleDateString('de-DE'));
-                    console.log('Letztes Reset - Monat:', lastReset.getMonth(), 'Jahr:', lastReset.getFullYear());
-                    
-                    // Zurücksetzen, wenn das letzte Reset in einem anderen Monat/Jahr war
-                    if (lastReset.getMonth() !== currentMonth || lastReset.getFullYear() !== currentYear) {
-                        console.log('→ Letztes Reset war in einem anderen Monat/Jahr');
-                        shouldReset = true;
-                    } else {
-                        console.log('→ Bereits in diesem Monat zurückgesetzt');
-                        shouldReset = false;
-                    }
-                }
-                
-                console.log('Soll zurückgesetzt werden?', shouldReset);
-                
-                if (shouldReset) {
-                    console.log('🔄 FÜHRE ZURÜCKSETZUNG DURCH!');
-                    resetMonthlyData();
-                    lastResetDate = now.toISOString();
-                    console.log('Neues lastResetDate:', lastResetDate);
-                    saveData();
-                } else {
-                    console.log('❌ Keine Zurücksetzung nötig');
-                }
-            } else {
-                console.log('❌ Tag ist < 26, keine Zurücksetzung');
-            }
-            console.log('=== ENDE CHECK ===');
-        }
-        // Monatliche Daten zurücksetzen
-        function resetMonthlyData() {
-            // Çekilen zur Ersparnis hinzufügen
-            const cekilenAmount = transactions
-                .filter(t => t.category === 'Çekilen' && t.type === 'expense')
-                .reduce((sum, t) => sum + t.amount, 0);
-            
-            // Nur hinzufügen, wenn es Çekilen-Ausgaben gibt
-            if (cekilenAmount > 0) {
-                ersparnis += cekilenAmount;
-                
-                // Ausgaben für Mutfak, Extra Kosten und Çekilen löschen
-                transactions = transactions.filter(t => 
-                    !(t.type === 'expense' && (t.category === 'Mutfak' || t.category === 'Extra Kosten' || t.category === 'Çekilen'))
-                );
-                
-                // Budgets zurücksetzen
-                budgets.mutfak = 0;
-                budgets.extra = 0;
-                budgets.benzin = 0;
-                
-                alert('Monatliche Zurücksetzung durchgeführt. ' + cekilenAmount.toFixed(2) + ' € Çekilen wurde zur Ersparnis hinzugefügt.');
-                updateDisplay();
-            }
-        }
+        // Monatliche Zurücksetzung prüfen - VERBESSERTE VERSION
+		function checkMonthlyReset() {
+		    const now = new Date();
+		    const today = now.getDate();
+		    const currentMonth = now.getMonth();
+		    const currentYear = now.getFullYear();
+		    
+		    console.log('=== CHECK MONTHLY RESET ===');
+		    console.log('Heutiges Datum:', now.toLocaleDateString('de-DE'));
+		    console.log('Tag im Monat:', today);
+		    console.log('Aktueller Monat:', currentMonth);
+		    console.log('Aktuelles Jahr:', currentYear);
+		    console.log('lastResetDate (raw):', lastResetDate);
+		    
+		    // Prüfen, ob heute der 26. oder später ist
+		    if (today >= 26) {
+		        console.log('✓ Tag ist >= 26');
+		        
+		        let shouldReset = false;
+		        
+		        if (!lastResetDate) {
+		            // Noch nie zurückgesetzt
+		            console.log('→ Noch nie zurückgesetzt');
+		            shouldReset = true;
+		        } else {
+		            // Konvertiere lastResetDate zu Date-Objekt falls es ein String ist
+		            const lastReset = typeof lastResetDate === 'string' ? new Date(lastResetDate) : lastResetDate;
+		            console.log('Letztes Reset-Datum:', lastReset.toLocaleDateString('de-DE'));
+		            console.log('Letztes Reset - Monat:', lastReset.getMonth(), 'Jahr:', lastReset.getFullYear());
+		            
+		            // Zurücksetzen, wenn das letzte Reset in einem anderen Monat/Jahr war
+		            // WICHTIG: Berücksichtige auch den Fall, dass wir im Dezember sind und nächster Monat Januar ist
+		            const lastResetMonth = lastReset.getMonth();
+		            const lastResetYear = lastReset.getFullYear();
+		            
+		            if (lastResetMonth !== currentMonth || lastResetYear !== currentYear) {
+		                console.log('→ Letztes Reset war in einem anderen Monat/Jahr');
+		                shouldReset = true;
+		            } else {
+		                console.log('→ Bereits in diesem Monat zurückgesetzt');
+		                shouldReset = false;
+		            }
+		        }
+		        
+		        console.log('Soll zurückgesetzt werden?', shouldReset);
+		        
+		        if (shouldReset) {
+		            console.log('🔄 FÜHRE ZURÜCKSETZUNG DURCH!');
+		            resetMonthlyData();
+		            lastResetDate = now;
+		            console.log('Neues lastResetDate:', lastResetDate);
+		            saveData();
+		        } else {
+		            console.log('❌ Keine Zurücksetzung nötig');
+		        }
+		    } else {
+		        console.log('❌ Tag ist < 26, keine Zurücksetzung');
+		    }
+		    console.log('=== ENDE CHECK ===');
+		}
+        
+        // Monatliche Daten zurücksetzen - VERBESSERTE VERSION
+		function resetMonthlyData() {
+		    console.log('Starte monatliche Zurücksetzung...');
+		    
+		    // Çekilen zur Ersparnis hinzufügen
+		    const cekilenAmount = transactions
+		        .filter(t => t.category === 'Çekilen' && t.type === 'expense')
+		        .reduce((sum, t) => sum + t.amount, 0);
+		    
+		    console.log('Çekilen Betrag gefunden:', cekilenAmount);
+		    
+		    // Nur hinzufügen, wenn es Çekilen-Ausgaben gibt
+		    if (cekilenAmount > 0) {
+		        ersparnis += cekilenAmount;
+		        console.log('Neue Ersparnis:', ersparnis);
+		    }
+		    
+		    // Ausgaben für Mutfak, Extra Kosten und Çekilen löschen
+		    const beforeCount = transactions.length;
+		    transactions = transactions.filter(t => 
+		        !(t.type === 'expense' && (t.category === 'Mutfak' || t.category === 'Extra Kosten' || t.category === 'Çekilen'))
+		    );
+		    const afterCount = transactions.length;
+		    
+		    console.log(`Transaktionen vorher: ${beforeCount}, nachher: ${afterCount}`);
+		    
+		    // Budgets zurücksetzen (optional - je nachdem ob du die Budgets beibehalten willst)
+		    // budgets.mutfak = 0;
+		    // budgets.extra = 0;
+		    // budgets.benzin = 0;
+		    
+		    if (cekilenAmount > 0) {
+		        alert('Monatliche Zurücksetzung durchgeführt. ' + cekilenAmount.toFixed(2) + ' € Çekilen wurde zur Ersparnis hinzugefügt.');
+		    } else {
+		        alert('Monatliche Zurücksetzung durchgeführt. Keine Çekilen-Ausgaben gefunden.');
+		    }
+		    
+		    updateDisplay();
+		    console.log('Zurücksetzung abgeschlossen');
+		}
 
         // Beschreibungsfeld ein-/ausblenden
         function toggleExpenseFields() {
@@ -2073,6 +2093,7 @@
             updateErsparnisDisplay();
             updateFixkostenDisplay();
             updateMonthDisplay();
+			checkMonthlyReset();
         }
 
         // ==================== UPDATE DISPLAY ====================
