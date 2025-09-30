@@ -509,7 +509,12 @@
 		    color: #e74c3c;
 		    font-weight: bold;
 		}
-				        
+		
+		.fixkosten-item.other-month {
+		    border-left: 5px solid #f39c12;
+		    background-color: #fffaf0;
+		}
+						        
         .filter-buttons {
             display: flex;
             gap: 10px;
@@ -2080,6 +2085,88 @@
 		    
 		    console.log(`Fixkosten gesamt diesen Monat: ${monthlyFixkosten.toFixed(2)}€`);
 		    return monthlyFixkosten;
+		}
+
+		// Fixkosten-Anzeige aktualisieren - GESAMTER BETRAG
+		function updateFixkostenDisplay() {
+		    const fixkostenContainer = document.getElementById('fixkostenItems');
+		    const now = new Date();
+		    const currentMonth = now.getMonth();
+		    const currentYear = now.getFullYear();
+		    const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+		
+		    if (fixkosten.length === 0) {
+		        fixkostenContainer.innerHTML = '<div style="padding: 20px; text-align: center; color: #7f8c8d;">Noch keine Fixkosten vorhanden</div>';
+		        document.getElementById('currentMonthFixkostenTotal').textContent = '0,00 €';
+		        return;
+		    }
+		
+		    let currentMonthTotal = 0;
+		    let nextMonthTotal = 0;
+		    let fixkostenHTML = '';
+		
+		    fixkosten.forEach(item => {
+		        const nextDue = new Date(item.nextDue);
+		        const isCurrentMonth = nextDue.getMonth() === currentMonth && nextDue.getFullYear() === currentYear;
+		        const isNextMonth = nextDue.getMonth() === nextMonth.getMonth() && nextDue.getFullYear() === nextMonth.getFullYear();
+		
+		        // Addiere GESAMTEN BETRAG zur Gesamtsumme
+		        if (isCurrentMonth) {
+		            currentMonthTotal += item.amount;
+		        }
+		        if (isNextMonth) {
+		            nextMonthTotal += item.amount;
+		        }
+		
+		        const intervalText = {
+		            'monthly': 'monatlich',
+		            'bimonthly': 'alle zwei Monate',
+		            'quarterly': 'alle drei Monate',
+		            'half-yearly': 'halbjährlich',
+		            'yearly': 'jährlich'
+		        }[item.interval] || item.interval;
+		
+		        const endDateText = item.endDate ? ` • Endet am: ${new Date(item.endDate).toLocaleDateString('de-DE')}` : '';
+		
+		        fixkostenHTML += `
+		            <div class="fixkosten-item ${isCurrentMonth ? 'current-month' : isNextMonth ? 'next-month' : 'other-month'}">
+		                <div class="fixkosten-header">
+		                    <span class="fixkosten-title">${item.title}</span>
+		                    <span class="fixkosten-amount" style="color: ${isCurrentMonth ? '#e74c3c' : isNextMonth ? '#3498db' : '#f39c12'}">
+		                        ${item.amount.toFixed(2)} €
+		                    </span>
+		                </div>
+		                <div class="fixkosten-details">
+		                    ${intervalText} • Nächste Fälligkeit: ${new Date(item.nextDue).toLocaleDateString('de-DE')}${endDateText}
+		                    ${isCurrentMonth ? ' <span style="color:#e74c3c; font-weight:bold;">(Dieser Monat)</span>' : ''}
+		                    ${isNextMonth ? ' <span style="color:#3498db; font-weight:bold;">(Nächster Monat)</span>' : ''}
+		                </div>
+		                <div class="fixkosten-actions">
+		                    <button class="edit-btn" onclick="editFixkosten(${item.id})">✏️</button>
+		                    <button class="delete-btn" onclick="deleteFixkosten(${item.id})">🗑️</button>
+		                </div>
+		            </div>
+		        `;
+		    });
+		
+		    fixkostenContainer.innerHTML = fixkostenHTML;
+		    document.getElementById('currentMonthFixkostenTotal').textContent = currentMonthTotal.toFixed(2) + ' €';
+		    
+		    // Zeige auch die Fixkosten für nächsten Monat an
+		    const summaryElement = document.querySelector('.fixkosten-summary');
+		    summaryElement.innerHTML = `
+		        <h4>Fixkosten Übersicht</h4>
+		        <div style="display: flex; justify-content: space-around; margin-top: 10px;">
+		            <div>
+		                <div style="font-size: 14px; color: #7f8c8d;">Dieser Monat</div>
+		                <div class="fixkosten-total current-month">${currentMonthTotal.toFixed(2)} €</div>
+		            </div>
+		            <div>
+		                <div style="font-size: 14px; color: #7f8c8d;">Nächster Monat</div>
+		                <div class="fixkosten-total next-month">${nextMonthTotal.toFixed(2)} €</div>
+		            </div>
+		        </div>
+		    `;
 		}
 
         // Ersparnis aktualisieren
