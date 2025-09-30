@@ -1082,6 +1082,7 @@
         let fixkosten = [];
         let currentFilter = 'all';
         let unsubscribeListener = null;
+		let lastResetCheck = null; // NEUE VARIABLE HINZUFÜGEN
 		
 		// ==================== HEDEF-BERECHNUNG ====================
         // Funktion zur Berechnung des Hedef-Werts
@@ -1493,20 +1494,27 @@
         }
 
         
-        // Monatliche Zurücksetzung prüfen - KORRIGIERTE VERSION
+        // Monatliche Zurücksetzung prüfen - ALTERNATIVE VERSION (täglich ab 26.)
 		function checkMonthlyReset() {
 		    const now = new Date();
 		    const today = now.getDate();
 		    const currentMonth = now.getMonth();
 		    const currentYear = now.getFullYear();
-		    
+		    // Prüfe nur einmal alle 5 Minuten, um zu häufige Aufrufe zu vermeiden
+		    if (lastResetCheck && (now - lastResetCheck) < 5 * 60 * 1000) {
+		        console.log('❌ Zuletzt vor kurzem geprüft, überspringe');
+		        return;
+		    }
+
+			lastResetCheck = now;
+		    const today = now.getDate();
+			
 		    console.log('=== CHECK MONTHLY RESET ===');
 		    console.log('Heutiges Datum:', now.toLocaleDateString('de-DE'));
-		    console.log('Tag im Monat:', today);
 		    
-		    // Nur am 26. des Monats prüfen
-		    if (today === 26) {
-		        console.log('✓ Heute ist der 26., prüfe Zurücksetzung');
+		    // Prüfen, ob heute der 26. oder später ist
+		    if (today >= 26) {
+		        console.log('✓ Tag ist >= 26, prüfe Zurücksetzung');
 		        
 		        let shouldReset = false;
 		        
@@ -1518,13 +1526,28 @@
 		            // Konvertiere lastResetDate zu Date-Objekt
 		            const lastReset = new Date(lastResetDate);
 		            console.log('Letztes Reset-Datum:', lastReset.toLocaleDateString('de-DE'));
+
+					// Prüfe ob bereits in diesem Zyklus zurückgesetzt wurde
+		            const lastResetDay = lastReset.getDate();
+		            const needsReset = lastResetDay < 26 || lastReset.getMonth() !== now.getMonth() || lastReset.getFullYear() !== now.getFullYear();
+		            
+		            if (needsReset) {
+		                console.log('→ Noch nicht in diesem Zyklus zurückgesetzt');
+		                shouldReset = true;
+		            } else {
+		                console.log('→ Bereits in diesem Zyklus zurückgesetzt');
+		                shouldReset = false;
+		            }
 		            
 		            // Zurücksetzen nur wenn das letzte Reset nicht heute war
 		            const lastResetDay = lastReset.getDate();
 		            const lastResetMonth = lastReset.getMonth();
 		            const lastResetYear = lastReset.getFullYear();
 		            
-		            if (lastResetDay !== 26 || lastResetMonth !== currentMonth || lastResetYear !== currentYear) {
+		            const todayString = now.toDateString();
+		            const lastResetString = lastReset.toDateString();
+		            
+		            if (lastResetString !== todayString) {
 		                console.log('→ Noch nicht heute zurückgesetzt');
 		                shouldReset = true;
 		            } else {
@@ -1545,7 +1568,7 @@
 		            console.log('❌ Keine Zurücksetzung nötig');
 		        }
 		    } else {
-		        console.log('❌ Heute ist nicht der 26., keine Zurücksetzung');
+		        console.log('❌ Tag ist < 26, keine Zurücksetzung');
 		    }
 		    console.log('=== ENDE CHECK ===');
 		}
