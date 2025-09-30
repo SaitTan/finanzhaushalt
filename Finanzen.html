@@ -1505,10 +1505,10 @@
 		        console.log('❌ Zuletzt vor kurzem geprüft, überspringe');
 		        return;
 		    }
-
-			lastResetCheck = now;
+		    
+		    lastResetCheck = now;
 		    const today = now.getDate();
-			
+		    
 		    console.log('=== CHECK MONTHLY RESET ===');
 		    console.log('Heutiges Datum:', now.toLocaleDateString('de-DE'));
 		    
@@ -1519,15 +1519,13 @@
 		        let shouldReset = false;
 		        
 		        if (!lastResetDate) {
-		            // Noch nie zurückgesetzt
 		            console.log('→ Noch nie zurückgesetzt');
 		            shouldReset = true;
 		        } else {
-		            // Konvertiere lastResetDate zu Date-Objekt
 		            const lastReset = new Date(lastResetDate);
 		            console.log('Letztes Reset-Datum:', lastReset.toLocaleDateString('de-DE'));
-
-					// Prüfe ob bereits in diesem Zyklus zurückgesetzt wurde
+		            
+		            // Prüfe ob bereits in diesem Zyklus zurückgesetzt wurde
 		            const lastResetDay = lastReset.getDate();
 		            const needsReset = lastResetDay < 26 || lastReset.getMonth() !== now.getMonth() || lastReset.getFullYear() !== now.getFullYear();
 		            
@@ -1538,22 +1536,6 @@
 		                console.log('→ Bereits in diesem Zyklus zurückgesetzt');
 		                shouldReset = false;
 		            }
-		            
-		            // Zurücksetzen nur wenn das letzte Reset nicht heute war
-		            const lastResetDay = lastReset.getDate();
-		            const lastResetMonth = lastReset.getMonth();
-		            const lastResetYear = lastReset.getFullYear();
-		            
-		            const todayString = now.toDateString();
-		            const lastResetString = lastReset.toDateString();
-		            
-		            if (lastResetString !== todayString) {
-		                console.log('→ Noch nicht heute zurückgesetzt');
-		                shouldReset = true;
-		            } else {
-		                console.log('→ Bereits heute zurückgesetzt');
-		                shouldReset = false;
-		            }
 		        }
 		        
 		        console.log('Soll zurückgesetzt werden?', shouldReset);
@@ -1562,10 +1544,7 @@
 		            console.log('🔄 FÜHRE ZURÜCKSETZUNG DURCH!');
 		            resetMonthlyData();
 		            lastResetDate = now.toISOString();
-		            console.log('Neues lastResetDate:', lastResetDate);
 		            saveData();
-		        } else {
-		            console.log('❌ Keine Zurücksetzung nötig');
 		        }
 		    } else {
 		        console.log('❌ Tag ist < 26, keine Zurücksetzung');
