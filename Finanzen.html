@@ -1302,12 +1302,21 @@
 		                    budgets = data.budgets || { mutfak: 0, extra: 0, benzin: 0 };
 		                    ersparnis = data.ersparnis || 0;
 		                    
-		                    // lastResetDate sicher laden - KORREKTUR
-		                    if (data.lastResetDate) {
+		                    // lastResetDate sicher laden - BEHANDLE BEIDE SCHREIBWEISEN
+		                    let resetDate = null;
+		                    if (data.lastResetDate !== undefined) {
+		                        resetDate = data.lastResetDate;
+		                    } else if (data.LastResetDate !== undefined) {
+		                        resetDate = data.LastResetDate; // Fallback für falsche Schreibweise
+		                        console.log('Verwende LastResetDate (falsche Schreibweise)');
+		                    }
+		                    
+		                    if (resetDate) {
 		                        try {
-		                            const testDate = new Date(data.lastResetDate);
+		                            const testDate = new Date(resetDate);
 		                            if (!isNaN(testDate.getTime())) {
-		                                lastResetDate = data.lastResetDate;
+		                                lastResetDate = resetDate;
+		                                console.log('lastResetDate geladen:', lastResetDate);
 		                            } else {
 		                                console.warn('Ungültiges lastResetDate gefunden, setze auf null');
 		                                lastResetDate = null;
@@ -1341,11 +1350,14 @@
 		                document.getElementById('familyNameDisplay').textContent = familyData.name;
 		                document.getElementById('invitationCode').value = familyData.joinCode;
 		                updateFamilyMembersList();
+						// DATENMIGRATION DURCHFÜHREN
+       					await migrateData();
 		            }
 		        } catch (error) {
 		            console.error('Fehler beim Laden der Familiedaten:', error);
 		        }
-		        
+
+						        
 		    } catch (error) {
 		        console.error("Fehler beim Einrichten des Listeners: ", error);
 		        alert("Datenbankverbindung fehlgeschlagen: " + error.message);
@@ -1359,7 +1371,7 @@
 		    }
 		    
 		    try {
-		        // Stelle sicher, dass lastResetDate ein gültiges Datum ist - KORREKTUR
+		        // Stelle sicher, dass lastResetDate ein gültiges Datum ist
 		        let safeLastResetDate = null;
 		        if (lastResetDate) {
 		            try {
@@ -1376,13 +1388,14 @@
 		            }
 		        }
 		        
+		        // VERWENDE KONSISTENTE FELDNAMEN (kleingeschrieben)
 		        const saveData = {
 		            transactions: transactions,
 		            budgets: budgets,
 		            ersparnis: ersparnis,
-		            lastResetDate: safeLastResetDate, // Verwende die sichere Version
+		            lastResetDate: safeLastResetDate, // Immer kleingeschrieben
 		            fixkosten: fixkosten,
-		            lastUpdated: new Date(),
+		            lastUpdated: new Date(), // Immer kleingeschrieben
 		            lastUpdatedBy: currentUser.uid
 		        };
 		        
@@ -1403,6 +1416,46 @@
 		    }
 		}
 
+		// Migrationsfunktion - korrigiert alte Feldnamen
+		async function migrateData() {
+		    console.log('Prüfe Datenmigration...');
+		    
+		    try {
+		        const docRef = db.collection('families').doc(currentFamily).collection('data').doc('financeData');
+		        const doc = await docRef.get();
+		        
+		        if (doc.exists) {
+		            const data = doc.data();
+		            let needsMigration = false;
+		            const updateData = {};
+		            
+		            // Prüfe auf falsche Schreibweisen und korrigiere sie
+		            if (data.LastResetDate !== undefined && data.lastResetDate === undefined) {
+		                console.log('Migriere LastResetDate zu lastResetDate');
+		                updateData.lastResetDate = data.LastResetDate;
+		                updateData.LastResetDate = firebase.firestore.FieldValue.delete(); // Altes Feld löschen
+		                needsMigration = true;
+		            }
+		            
+		            if (data.LastUpdated !== undefined && data.lastUpdated === undefined) {
+		                console.log('Migriere LastUpdated zu lastUpdated');
+		                updateData.lastUpdated = data.LastUpdated;
+		                updateData.LastUpdated = firebase.firestore.FieldValue.delete(); // Altes Feld löschen
+		                needsMigration = true;
+		            }
+		            
+		            if (needsMigration) {
+		                console.log('Führe Datenmigration durch:', updateData);
+		                await docRef.update(updateData);
+		                console.log('Datenmigration abgeschlossen');
+		            } else {
+		                console.log('Keine Migration notwendig');
+		            }
+		        }
+		    } catch (error) {
+		        console.error('Fehler bei der Datenmigration:', error);
+		    }
+		}
 
         // UI basierend auf Berechtigungen aktualisieren
         function updateUIBasedOnPermissions() {
