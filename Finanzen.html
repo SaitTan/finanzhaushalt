@@ -524,6 +524,33 @@
 		    color: #27ae60;
 		    font-weight: bold;
 		}
+		/* Styles für abgelaufene Fixkosten */
+		.fixkosten-item.expired {
+		    opacity: 0.6;
+		    background-color: #f8f9fa !important;
+		    border-left: 5px solid #95a5a6 !important;
+		}
+		
+		.fixkosten-item.expired .fixkosten-title {
+		    color: #95a5a6;
+		    text-decoration: line-through;
+		}
+		
+		.fixkosten-item.expired .fixkosten-amount {
+		    color: #95a5a6 !important;
+		}
+		
+		.fixkosten-item.expired .fixkosten-details {
+		    color: #95a5a6;
+		}
+		
+		.fixkosten-item.expired .edit-btn {
+		    background: #95a5a6 !important;
+		}
+		
+		.fixkosten-item.expired .edit-btn:hover {
+		    background: #7f8c8d !important;
+		}
 						        
         .filter-buttons {
             display: flex;
@@ -2139,7 +2166,7 @@
 		    return monthlyFixkosten;
 		}
 
-		// Fixkosten-Anzeige aktualisieren - MIT MONATLICHEN FIXKOSTEN
+		// In der updateFixkostenDisplay() Funktion - ERGÄNZUNG FÜR ABGELAUFENE FIXKOSTEN
 		function updateFixkostenDisplay() {
 		    const fixkostenContainer = document.getElementById('fixkostenItems');
 		    const now = new Date();
@@ -2189,28 +2216,34 @@
 		
 		    fixkosten.forEach(item => {
 		        const nextDue = new Date(item.nextDue);
+		        const endDate = item.endDate ? new Date(item.endDate) : null;
 		        
-		        // Prüfe ob Fixkosten im aktuellen Zyklus aktiv ist
+		        // Prüfe ob Fixkosten ABGELAUFEN ist
+		        const isExpired = endDate && endDate < now;
+		        
+		        // Prüfe ob Fixkosten im aktuellen Zyklus aktiv ist (nur wenn nicht abgelaufen)
 		        let isCurrentCycle = false;
 		        let isNextCycle = false;
 		        
-		        // MONATLICHE Fixkosten: Immer im aktuellen Zyklus aktiv
-		        if (item.interval === 'monthly') {
-		            isCurrentCycle = true;
-		            // Für nächsten Zyklus auch immer aktiv (da monatlich)
-		            isNextCycle = true;
-		        } else {
-		            // ANDERE Intervalle: Nur aktiv wenn Fälligkeit im entsprechenden Zyklus
-		            isCurrentCycle = nextDue.getMonth() === currentCycleMonth && nextDue.getFullYear() === currentCycleYear;
-		            isNextCycle = nextDue.getMonth() === nextCycleMonth && nextDue.getFullYear() === nextCycleYear;
-		        }
+		        if (!isExpired) {
+		            // MONATLICHE Fixkosten: Immer im aktuellen Zyklus aktiv
+		            if (item.interval === 'monthly') {
+		                isCurrentCycle = true;
+		                // Für nächsten Zyklus auch immer aktiv (da monatlich)
+		                isNextCycle = true;
+		            } else {
+		                // ANDERE Intervalle: Nur aktiv wenn Fälligkeit im entsprechenden Zyklus
+		                isCurrentCycle = nextDue.getMonth() === currentCycleMonth && nextDue.getFullYear() === currentCycleYear;
+		                isNextCycle = nextDue.getMonth() === nextCycleMonth && nextDue.getFullYear() === nextCycleYear;
+		            }
 		
-		        // Addiere GESAMTEN BETRAG zur Gesamtsumme
-		        if (isCurrentCycle) {
-		            currentCycleTotal += item.amount;
-		        }
-		        if (isNextCycle) {
-		            nextCycleTotal += item.amount;
+		            // Addiere GESAMTEN BETRAG zur Gesamtsumme (nur wenn nicht abgelaufen)
+		            if (isCurrentCycle) {
+		                currentCycleTotal += item.amount;
+		            }
+		            if (isNextCycle) {
+		                nextCycleTotal += item.amount;
+		            }
 		        }
 		
 		        const intervalText = {
@@ -2226,26 +2259,49 @@
 		        // Besondere Kennzeichnung für monatliche Fixkosten
 		        const monthlyIndicator = item.interval === 'monthly' ? ' <span style="color:#27ae60; font-weight:bold;">(Monatlich)</span>' : '';
 		
-		        fixkostenHTML += `
-		            <div class="fixkosten-item ${isCurrentCycle ? 'current-month' : isNextCycle ? 'next-month' : 'other-month'}">
-		                <div class="fixkosten-header">
-		                    <span class="fixkosten-title">${item.title}</span>
-		                    <span class="fixkosten-amount" style="color: ${isCurrentCycle ? '#e74c3c' : isNextCycle ? '#3498db' : '#f39c12'}">
-		                        ${item.amount.toFixed(2)} €
-		                    </span>
+		        // ABGELAUFENE FIXKOSTEN: Grau darstellen und als "Abgelaufen" markieren
+		        if (isExpired) {
+		            fixkostenHTML += `
+		                <div class="fixkosten-item expired" style="opacity: 0.6; background-color: #f8f9fa; border-left: 5px solid #95a5a6 !important;">
+		                    <div class="fixkosten-header">
+		                        <span class="fixkosten-title" style="color: #95a5a6; text-decoration: line-through;">${item.title}</span>
+		                        <span class="fixkosten-amount" style="color: #95a5a6;">
+		                            ${item.amount.toFixed(2)} €
+		                        </span>
+		                    </div>
+		                    <div class="fixkosten-details" style="color: #95a5a6;">
+		                        ${intervalText} • <strong style="color: #e74c3c;">ABGELAUFEN</strong> • Endete am: ${new Date(item.endDate).toLocaleDateString('de-DE')}
+		                        ${monthlyIndicator}
+		                    </div>
+		                    <div class="fixkosten-actions">
+		                        <button class="edit-btn" onclick="editFixkosten(${item.id})" style="background: #95a5a6;">✏️</button>
+		                        <button class="delete-btn" onclick="deleteFixkosten(${item.id})">🗑️</button>
+		                    </div>
 		                </div>
-		                <div class="fixkosten-details">
-		                    ${intervalText} • Nächste Fälligkeit: ${new Date(item.nextDue).toLocaleDateString('de-DE')}${endDateText}
-		                    ${monthlyIndicator}
-		                    ${isCurrentCycle && item.interval !== 'monthly' ? ' <span style="color:#e74c3c; font-weight:bold;">(Aktueller Zyklus)</span>' : ''}
-		                    ${isNextCycle && item.interval !== 'monthly' ? ' <span style="color:#3498db; font-weight:bold;">(Nächster Zyklus)</span>' : ''}
+		            `;
+		        } else {
+		            // AKTIVE FIXKOSTEN: Normale Darstellung
+		            fixkostenHTML += `
+		                <div class="fixkosten-item ${isCurrentCycle ? 'current-month' : isNextCycle ? 'next-month' : 'other-month'}">
+		                    <div class="fixkosten-header">
+		                        <span class="fixkosten-title">${item.title}</span>
+		                        <span class="fixkosten-amount" style="color: ${isCurrentCycle ? '#e74c3c' : isNextCycle ? '#3498db' : '#f39c12'}">
+		                            ${item.amount.toFixed(2)} €
+		                        </span>
+		                    </div>
+		                    <div class="fixkosten-details">
+		                        ${intervalText} • Nächste Fälligkeit: ${new Date(item.nextDue).toLocaleDateString('de-DE')}${endDateText}
+		                        ${monthlyIndicator}
+		                        ${isCurrentCycle && item.interval !== 'monthly' ? ' <span style="color:#e74c3c; font-weight:bold;">(Aktueller Zyklus)</span>' : ''}
+		                        ${isNextCycle && item.interval !== 'monthly' ? ' <span style="color:#3498db; font-weight:bold;">(Nächster Zyklus)</span>' : ''}
+		                    </div>
+		                    <div class="fixkosten-actions">
+		                        <button class="edit-btn" onclick="editFixkosten(${item.id})">✏️</button>
+		                        <button class="delete-btn" onclick="deleteFixkosten(${item.id})">🗑️</button>
+		                    </div>
 		                </div>
-		                <div class="fixkosten-actions">
-		                    <button class="edit-btn" onclick="editFixkosten(${item.id})">✏️</button>
-		                    <button class="delete-btn" onclick="deleteFixkosten(${item.id})">🗑️</button>
-		                </div>
-		            </div>
-		        `;
+		            `;
+		        }
 		    });
 		
 		    fixkostenContainer.innerHTML = fixkostenHTML;
